@@ -16,5 +16,4 @@ public class Property
 
     public string Description { get; set; }
 
-    public ICollection<House> Houses { get; set; }
 }
