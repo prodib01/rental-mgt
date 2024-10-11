@@ -1,0 +1,18 @@
+# Ignore configuration files
+appsettings.json
+appsettings.Development.json
+
+# Ignore .NET and build-related files
+bin/
+obj/
+
+# Ignore IDE configuration files (if you use VSCode, etc.)
+.vscode/
+.idea/
+
+# Ignore DBeaver settings
+.dbeaver-data-sources/
+
+# Other OS and temporary files
+*.log
+*.tmp
