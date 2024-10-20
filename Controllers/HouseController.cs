@@ -41,6 +41,7 @@ namespace RentalManagementSystem.Controllers
         [HttpPost]
         public async Task<ActionResult<House>> CreateHouse(House house)
         {
+            house.Id = 0;
             _context.Houses.Add(house);
             await _context.SaveChangesAsync();
 

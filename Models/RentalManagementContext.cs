@@ -9,6 +9,8 @@ public class RentalManagementContext : DbContext
     public DbSet<Property> Properties { get; set; }
     public DbSet<House> Houses { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
+    public DbSet<Landlord> Landlords { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
