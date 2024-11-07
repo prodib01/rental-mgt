@@ -1,7 +1,8 @@
-using System;
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 public class AuthService
@@ -13,12 +14,12 @@ public class AuthService
         _configuration = configuration;
     }
 
-    public string GenerateJwtToken(string username, string userType)
+    public string GenerateJwtToken(string email, string role)
     {
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim("UserType", userType), // Add user type claim (Tenant or Landlord)
+            new Claim(JwtRegisteredClaimNames.Sub, email),
+            new Claim("role", role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
