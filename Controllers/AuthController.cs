@@ -1,61 +1,134 @@
 // Controllers/AuthController.cs
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
+using RentalManagementSystem.DTOs;
+using RentalManagementSystem.ViewModels;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;  // Add this if it's missing
 
-[Route("api/[controller]")]
-[ApiController]
-public class AuthController : ControllerBase
+public class AuthController : Controller
 {
-    private readonly RentalManagementContext _context; // Use your specific context
-    private readonly AuthService _authService;
+    private readonly RentalManagementContext _context;
+    private readonly IAuthService _authService;
 
-    // Corrected constructor to use RentalManagementContext instead of DbContext
-    public AuthController(RentalManagementContext context, AuthService authService)
+    public AuthController(RentalManagementContext context, IAuthService authService)
     {
         _context = context;
         _authService = authService;
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(UserRegistrationDto registrationDto)
+    // GET: /Auth/Login (For rendering the login form view)
+    public IActionResult Login()
     {
-        // Check if the user already exists
-        var existingUser = await _context.Set<User>().FirstOrDefaultAsync(u => u.Email == registrationDto.Email);
-        if (existingUser != null)
-            return BadRequest("User already exists.");
+        var model = new LoginViewModel();
 
-        // Create a new user with hashed password
-        var passwordHasher = new PasswordHasher<User>();
-        var user = new User
+        // Pass any success or error message to the view
+        if (TempData["SuccessMessage"] != null)
         {
-            Email = registrationDto.Email,
-            Role = registrationDto.Role,
-            PasswordHash = passwordHasher.HashPassword(null, registrationDto.Password)
-        };
+            ViewData["SuccessMessage"] = TempData["SuccessMessage"];
+        }
 
-        _context.Set<User>().Add(user);
-        await _context.SaveChangesAsync();
-        return Ok("Registration successful.");
+        if (TempData["ErrorMessage"] != null)
+        {
+            ViewData["ErrorMessage"] = TempData["ErrorMessage"];
+        }
+
+        return View(model);
+    }
+
+    // POST: /Auth/Login (For processing login form submission)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Login(LoginViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model); // Return back with validation errors if any
+        }
+
+        if (model == null)
+        {
+            ModelState.AddModelError(string.Empty, "Model cannot be null");
+            return View(model);  // Show error if model is null
+        }
+
+        var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = errorMessage; // Store error message in TempData
+            return RedirectToAction("Login");  // Redirect to Login page to show error message
+        }
+
+        var authTokens = await _authService.GenerateAuthTokensAsync(user);
+
+        // Store success message in TempData
+        TempData["SuccessMessage"] = "Login successful!";
+
+        // Optionally store tokens in cookies or session
+        return RedirectToAction("Dashboard", "Home"); // Redirect to a dashboard page after login
+    }
+
+    // Keep the existing API methods for registration, refresh token, etc.
+    [HttpPost("register-tenant")]
+    public async Task<IActionResult> RegisterTenant(UserRegistrationDto registrationDto)
+    {
+        var existingTenant = await _context.Users.FirstOrDefaultAsync(u => u.Email == registrationDto.Email && u.Role == "Tenant");
+        if (existingTenant != null)
+            return BadRequest("Tenant already exists.");
+
+        var user = await _authService.RegisterUserAsync(registrationDto.Email, registrationDto.Password, "Tenant");
+        return Ok(user);
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(UserLoginDto loginDto)
+    public async Task<IActionResult> ApiLogin([FromBody] UserLoginDto loginDto)
     {
-        // Find the user by email
-        var user = await _context.Set<User>().FirstOrDefaultAsync(u => u.Email == loginDto.Email);
+        var (user, errorMessage) = await _authService.ValidateLoginAsync(loginDto.Email, loginDto.Password);
         if (user == null)
-            return Unauthorized("Invalid email or password.");
+        {
+            return Unauthorized(new { message = errorMessage });
+        }
 
-        // Verify the password
-        var passwordHasher = new PasswordHasher<User>();
-        var passwordVerificationResult = passwordHasher.VerifyHashedPassword(null, user.PasswordHash, loginDto.Password);
-        if (passwordVerificationResult == PasswordVerificationResult.Failed)
-            return Unauthorized("Invalid email or password.");
+        var authTokens = await _authService.GenerateAuthTokensAsync(user);
 
-        // Generate a JWT token
-        var token = _authService.GenerateJwtToken(user.Email, user.Role);
-        return Ok(new { Token = token });
+        var userDto = new UserDto
+        {
+            Email = user.Email,
+            Role = user.Role,
+            Token = authTokens.Token,
+            RefreshToken = authTokens.RefreshToken,
+            Expiration = authTokens.Expiration
+        };
+
+        return Ok(userDto);
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken()
+    {
+        var refreshToken = Request.Cookies["X-Refresh-Token"];
+        if (string.IsNullOrEmpty(refreshToken))
+            return BadRequest("Refresh token is required.");
+
+        var authResponse = await _authService.ValidateAndGenerateTokensAsync(refreshToken);
+        if (authResponse == null)
+            return Unauthorized(new { message = "Invalid refresh token." });
+
+        Response.Cookies.Append("X-Refresh-Token", authResponse.RefreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTime.UtcNow.AddDays(7)
+        });
+
+        return Ok(authResponse);
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("X-Refresh-Token");
+        return Ok(new { message = "Logged out successfully" });
     }
 }
