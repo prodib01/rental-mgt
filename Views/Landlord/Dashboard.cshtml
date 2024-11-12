@@ -1,0 +1,111 @@
+@model RentalManagementSystem.ViewModels.LandlordDashboardViewModel
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Landlord Dashboard</h2>
+
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Properties</h6>
+                    <h2 class="card-text">@Model.TotalProperties</h2>
+                    <small>@Model.OccupiedProperties occupied, @Model.VacantProperties vacant</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Monthly Revenue</h6>
+                    <h2 class="card-text">$@Model.MonthlyRevenue.ToString("N0")</h2>
+                    <small>From @Model.OccupiedProperties properties</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning">
+                <div class="card-body">
+                    <h6 class="card-title">Maintenance Requests</h6>
+                    <h2 class="card-text">@Model.PendingMaintenanceRequests</h2>
+                    <small>Pending requests</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Lease Renewals</h6>
+                    <h2 class="card-text">@Model.UpcomingLeaseRenewals</h2>
+                    <small>Due in next 30 days</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Payments and Vacant Properties -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Payments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tenant</th>
+                                    <th>Property</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in Model.RecentPayments)
+                                {
+                                    <tr>
+                                        <td>@payment.TenantName</td>
+                                        <td>@payment.PropertyAddress</td>
+                                        <td>$@payment.Amount.ToString("N2")</td>
+                                        <td>@payment.PaymentDate.ToShortDateString()</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Vacant Properties</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Address</th>
+                                    <th>Monthly Rent</th>
+                                    <th>Vacant Since</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var property in Model.VacantPropertiesList)
+                                {
+                                    <tr>
+                                        <td>@property.Address</td>
+                                        <td>$@property.MonthlyRent.ToString("N2")</td>
+                                        <td>@property.LastTenantMoveOutDate.ToShortDateString()</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

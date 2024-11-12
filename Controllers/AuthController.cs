@@ -36,36 +36,38 @@ public class AuthController : Controller
         return View(model);
     }
 
-    // POST: /Auth/Login (For processing login form submission)
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginViewModel model)
+    public async Task<IActionResult> Login(LoginModel model)
     {
         if (!ModelState.IsValid)
         {
-            return View(model); // Return back with validation errors if any
+            return View(model);
         }
 
-        if (model == null)
-        {
-            ModelState.AddModelError(string.Empty, "Model cannot be null");
-            return View(model);  // Show error if model is null
-        }
-
-        var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
+        var user = await _authService.AuthenticateAsync(model.Email, model.Password);
         if (user == null)
         {
-            TempData["ErrorMessage"] = errorMessage; // Store error message in TempData
-            return RedirectToAction("Login");  // Redirect to Login page to show error message
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            return View(model);
         }
 
-        var authTokens = await _authService.GenerateAuthTokensAsync(user);
+        var tokenResponse = await _authService.GenerateAuthTokensAsync(user);
 
-        // Store success message in TempData
-        TempData["SuccessMessage"] = "Login successful!";
+        // Store the JWT in a secure cookie
+        Response.Cookies.Append("JWT", tokenResponse.Token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict
+        });
 
-        // Optionally store tokens in cookies or session
-        return RedirectToAction("Dashboard", "Home"); // Redirect to a dashboard page after login
+        // Redirect based on user role
+        return user.Role switch
+        {
+            "Landlord" => RedirectToAction("Dashboard", "Landlord"),
+            "Tenant" => RedirectToAction("Dashboard", "Tenant"),
+            _ => RedirectToAction("Login", "Auth")
+        };
     }
 
     // Keep the existing API methods for registration, refresh token, etc.
