@@ -37,17 +37,17 @@ public class AuthController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Login(LoginModel model)
+    public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var user = await _authService.AuthenticateAsync(model.Email, model.Password);
+        var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
         if (user == null)
         {
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            ModelState.AddModelError(string.Empty, errorMessage ?? "Invalid login attempt.");
             return View(model);
         }
 
@@ -61,14 +61,18 @@ public class AuthController : Controller
             SameSite = SameSiteMode.Strict
         });
 
-        // Redirect based on user role
-        return user.Role switch
+        // Redirect based on user role, with a default 'Unauthorized' role fallback
+        var redirectAction = user.Role switch
         {
-            "Landlord" => RedirectToAction("Dashboard", "Landlord"),
-            "Tenant" => RedirectToAction("Dashboard", "Tenant"),
-            _ => RedirectToAction("Login", "Auth")
+            "Landlord" => "Dashboard",
+            "Tenant" => "Dashboard",
+            _ => "Unauthorized" // Redirect to a generic or unauthorized page if the role is unknown
         };
+
+        return RedirectToAction(redirectAction, user.Role);
     }
+
+
 
     // Keep the existing API methods for registration, refresh token, etc.
     [HttpPost("register-tenant")]

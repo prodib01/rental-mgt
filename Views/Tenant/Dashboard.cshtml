@@ -1,0 +1,53 @@
+@model RentalManagementSystem.ViewModels.TenantDashboardViewModel
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Tenant Dashboard</h2>
+
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Rent</h6>
+                    <h2 class="card-text">$@Model.Rent.ToString("N2")</h2>
+                    <small>Monthly Rent for @Model.HouseNumber @Model.StreetName</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Bills -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Pending Bills</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Bill Type</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var bill in Model.PendingBills)
+                                {
+                                    <tr>
+                                        <td>@bill.BillType</td>
+                                        <td>$@bill.Amount.ToString("N2")</td>
+                                        <td>@bill.DueDate.ToShortDateString()</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
-[Authorize(Policy = "LandlordOnly")]
+// [Authorize(Policy = "LandlordOnly")]
 public class LandlordController : Controller
 {
     public IActionResult Dashboard()
