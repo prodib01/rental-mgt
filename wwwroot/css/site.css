@@ -18,5 +18,104 @@ html {
 }
 
 body {
-  margin-bottom: 60px;
+    background-color: var(--light-bg);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --accent-color: #3498db;
+    --light-bg: #f8f9fa;
+    --header-height: 70px;
+}
+
+header {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: var(--header-height);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+.system-title {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 1.5rem;
+    text-decoration: none;
+}
+
+/* User Profile Section */
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-greeting {
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+.profile-button {
+    background-color: transparent;
+    border: 2px solid var(--accent-color);
+    color: var(--accent-color);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.profile-button:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 0.75rem 1.5rem;
+    color: var(--secondary-color);
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--light-bg);
+    color: var(--accent-color);
+}
+
+/* Main Content Area */
+main {
+    margin-top: var(--header-height);
+    padding: 2rem 0;
+    min-height: calc(100vh - var(--header-height));
+}
+
+.container-fluid {
+    max-width: 1400px;
+    padding: 0 2rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0 1rem;
+    }
+
+    .user-greeting {
+        display: none;
+    }
+
+    .system-title {
+        font-size: 1.2rem;
+    }
 }
