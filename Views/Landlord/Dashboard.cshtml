@@ -1,14 +1,95 @@
 @model RentalManagementSystem.ViewModels.LandlordDashboardViewModel
 
+<style type="text/css">
+    .dashboard-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric-card {
+        min-height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .metric-card .card-title {
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 1rem;
+    }
+
+    .metric-card .card-text {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-card small {
+        opacity: 0.8;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        border-top: none;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        color: #495057;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+        padding: 1rem 0.75rem;
+    }
+
+    .card-header {
+        background-color: transparent;
+        border-bottom: 2px solid #f8f9fa;
+        padding: 1.25rem;
+    }
+
+    .card-header h5 {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    /* Custom gradients for metric cards */
+    .bg-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+    }
+
+    .bg-success {
+        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%) !important;
+    }
+
+    .bg-warning {
+        background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%) !important;
+    }
+
+    .bg-info {
+        background: linear-gradient(135deg, #36b9cc 0%, #258391 100%) !important;
+    }
+</style>
 
 <div class="container-fluid mt-4">
-    <h2 class="mb-4">Landlord Dashboard</h2>
 
     <!-- Key Metrics -->
-    <div class="row mb-4">
+    <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
+            <div class="dashboard-card card bg-primary text-white metric-card">
                 <div class="card-body">
                     <h6 class="card-title">Total Properties</h6>
                     <h2 class="card-text">@Model.TotalProperties</h2>
@@ -17,7 +98,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-success text-white">
+            <div class="dashboard-card card bg-success text-white metric-card">
                 <div class="card-body">
                     <h6 class="card-title">Monthly Revenue</h6>
                     <h2 class="card-text">$@Model.MonthlyRevenue.ToString("N0")</h2>
@@ -26,7 +107,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-warning">
+            <div class="dashboard-card card bg-warning text-dark metric-card">
                 <div class="card-body">
                     <h6 class="card-title">Maintenance Requests</h6>
                     <h2 class="card-text">@Model.PendingMaintenanceRequests</h2>
@@ -35,7 +116,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="dashboard-card card bg-info text-white metric-card">
                 <div class="card-body">
                     <h6 class="card-title">Lease Renewals</h6>
                     <h2 class="card-text">@Model.UpcomingLeaseRenewals</h2>
@@ -46,15 +127,15 @@
     </div>
 
     <!-- Recent Payments and Vacant Properties -->
-    <div class="row">
+    <div class="row g-4">
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
+            <div class="dashboard-card card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Payments</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Tenant</th>
@@ -67,9 +148,9 @@
                                 @foreach (var payment in Model.RecentPayments)
                                 {
                                     <tr>
-                                        <td>@payment.TenantName</td>
+                                        <td class="fw-semibold">@payment.TenantName</td>
                                         <td>@payment.PropertyAddress</td>
-                                        <td>$@payment.Amount.ToString("N2")</td>
+                                        <td class="fw-semibold text-success">$@payment.Amount.ToString("N2")</td>
                                         <td>@payment.PaymentDate.ToShortDateString()</td>
                                     </tr>
                                 }
@@ -80,13 +161,13 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
+            <div class="dashboard-card card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Vacant Properties</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Address</th>
@@ -98,8 +179,8 @@
                                 @foreach (var property in Model.VacantPropertiesList)
                                 {
                                     <tr>
-                                        <td>@property.Address</td>
-                                        <td>$@property.MonthlyRent.ToString("N2")</td>
+                                        <td class="fw-semibold">@property.Address</td>
+                                        <td class="text-primary">$@property.MonthlyRent.ToString("N2")</td>
                                         <td>@property.LastTenantMoveOutDate.ToShortDateString()</td>
                                     </tr>
                                 }
