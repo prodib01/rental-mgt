@@ -3,14 +3,16 @@ using System.ComponentModel.DataAnnotations;
 
 public class User
 {
-    public int Id { get; set; }  
+    public int Id { get; set; }
+
+    public string FullName { get; set; }
 
     [Required]
     [EmailAddress]
     public string Email { get; set; }
 
     [Required]
-    public string PasswordHash { get; set; } 
+    public string PasswordHash { get; set; }
 
     [Required]
     public string Role { get; set; }
@@ -20,4 +22,12 @@ public class User
 
     public string RefreshToken { get; set; }
     public DateTime RefreshTokenExpiryTime { get; set; }
+
+    public string PhoneNumber { get; set; }
+
+    public int? HouseId { get; set; }
+    public House House { get; set; }
+    public ICollection<Property> Properties { get; set; } = new List<Property>();
+
+    public bool PasswordChanged { get; set; }
 }

@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 public class Property
-{ 
+{
     public int Id { get; set; }
 
     [Required]
@@ -12,8 +13,14 @@ public class Property
 
     [Required]
     [DataType(DataType.Currency)]
-    public decimal Rent { get; set; }
 
     public string Description { get; set; }
 
+    // Foreign key to User (Landlord)
+    public int UserId { get; set; }
+    public User User { get; set; }
+
+    // Navigation property for Houses
+    public ICollection<House> Houses { get; set; } = new List<House>();
 }
+
