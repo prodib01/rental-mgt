@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
-// [Authorize(Policy = "TenantOnly")]
 public class TenantController : Controller
 {
     public IActionResult Dashboard()

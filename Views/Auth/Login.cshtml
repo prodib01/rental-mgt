@@ -1,69 +1,186 @@
 @model RentalManagementSystem.ViewModels.LoginViewModel
-
 @{
     ViewData["Title"] = "Login";
+    Layout = null;
 }
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Login</h2>
+<!DOCTYPE html>
+<html>
 
-    <!-- Success Message -->
-    @if (ViewData["SuccessMessage"] != null)
-    {
-        <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive"
-            aria-atomic="true" data-bs-delay="5000">
-            <div class="d-flex">
-                <div class="toast-body">
-                    @ViewData["SuccessMessage"]
+<head>
+    <title>Login - Rental Management System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style type="text/css">
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-control {
+            border: 2px solid #e1e1e1;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        }
+
+        .btn-primary {
+            padding: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 300px;
+            z-index: 1050;
+        }
+
+        .toast.show {
+            animation: toast-slide-in 0.5s ease-out forwards;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .signup-link {
+            color: #0d6efd;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .signup-link:hover {
+            color: #0a58ca;
+            text-decoration: underline;
+        }
+
+        /* Define animations using CSS3 syntax */
+        @@-webkit-keyframes toast-slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @@keyframes toast-slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+        <div class="login-card card shadow-lg p-4 border-0" style="max-width: 400px; width: 100%;">
+            <h2 class="text-center mb-4 fw-bold">Welcome Back</h2>
+
+            <!-- Success Message -->
+            @if (ViewData["SuccessMessage"] != null)
+            {
+                <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive"
+                    aria-atomic="true" data-bs-delay="5000">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            @ViewData["SuccessMessage"]
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                            aria-label="Close"></button>
+                    </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    }
+            }
 
-    <!-- Error Message -->
-    @if (ViewData["ErrorMessage"] != null)
-    {
-        <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive"
-            aria-atomic="true" data-bs-delay="5000">
-            <div class="d-flex">
-                <div class="toast-body">
-                    @ViewData["ErrorMessage"]
+            <!-- Error Message -->
+            @if (ViewData["ErrorMessage"] != null)
+            {
+                <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive"
+                    aria-atomic="true" data-bs-delay="5000">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            @ViewData["ErrorMessage"]
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                            aria-label="Close"></button>
+                    </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    }
+            }
 
-    <!-- Login Form -->
-    <form method="post" class="border p-4 rounded shadow-sm bg-light">
-        <div class="mb-3">
-            <label for="Email" class="form-label">Email:</label>
-            <input type="email" id="Email" name="Email" value="@Model.Email" class="form-control" required />
-        </div>
-        <div class="mb-3">
-            <label for="Password" class="form-label">Password:</label>
-            <input type="password" id="Password" name="Password" value="@Model.Password" class="form-control"
-                required />
-        </div>
-        <button type="submit" class="btn btn-primary w-100 mt-3">Login</button>
-    </form>
-</div>
+            <!-- Login Form -->
+            <form method="post" class="p-2">
+                <div class="mb-4">
+                    <label for="Email" class="form-label">Email address</label>
+                    <input type="email" id="Email" name="Email" value="@Model.Email" class="form-control" required
+                        placeholder="Enter your email" />
+                </div>
 
-@section Scripts {
+                <div class="mb-4">
+                    <label for="Password" class="form-label">Password</label>
+                    <input type="password" id="Password" name="Password" value="@Model.Password" class="form-control"
+                        required placeholder="Enter your password" />
+                </div>
+
+                <div class="d-grid gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary">Sign In</button>
+                </div>
+
+                @* <div class="text-center">
+                    <p class="mb-0">Don't have an account? <a href="/account/register" class="signup-link">Sign up</a>
+                    </p>
+                </div> *@
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         // Initialize the toasts when the page loads
-        var successToast = document.querySelector('.toast.bg-success');
-        var errorToast = document.querySelector('.toast.bg-danger');
-
-        if (successToast) {
-            var toast = new bootstrap.Toast(successToast);
-            toast.show();
-        }
-
-        if (errorToast) {
-            var toast = new bootstrap.Toast(errorToast);
-            toast.show();
-        }
+        document.addEventListener('DOMContentLoaded', function () {
+            var toasts = document.querySelectorAll('.toast');
+            toasts.forEach(function (toastEl) {
+                var toast = new bootstrap.Toast(toastEl, {
+                    autohide: true,
+                    delay: 5000
+                });
+                toast.show();
+            });
+        });
     </script>
-}
+</body>
+
+</html>
