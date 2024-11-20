@@ -9,6 +9,8 @@ public class LandlordController : Controller
     {
         var model = GetLandlordDashboardData();
         return View(model);
+
+        
     }
 
     private LandlordDashboardViewModel GetLandlordDashboardData()
@@ -33,14 +35,7 @@ public class LandlordController : Controller
                     PaymentDate = DateTime.Now.AddDays(-2)
                 }
             },
-            VacantPropertiesList = new List<PropertyViewModel>
-            {
-                new PropertyViewModel {
-                    Address = "456 Oak Ave",
-                    MonthlyRent = 1500M,
-                    LastTenantMoveOutDate = DateTime.Now.AddMonths(-1)
-                }
-            }
+
         };
     }
 }

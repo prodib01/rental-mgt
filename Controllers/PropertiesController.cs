@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentalManagementSystem.Models;
+using RentalManagementSystem.ViewModels;
+using RentalManagementSystem.DTOs;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RentalManagementSystem.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class PropertiesController : ControllerBase
+    [Route("Landlord/Property")]
+    public class PropertiesController : Controller
     {
         private readonly RentalManagementContext _context;
 
@@ -15,81 +19,134 @@ namespace RentalManagementSystem.Controllers
             _context = context;
         }
 
-        // GET: api/Properties
+        // GET: /Landlord/Property
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Property>>> GetProperties()
+        [Route("")]
+        public async Task<IActionResult> Property(int page = 1, int pageSize = 10)
         {
-            return await _context.Properties.ToListAsync();
-        }
+            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+            var userRole = User.FindFirst("Role")?.Value;
 
-        // GET: api/Properties/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Property>> GetProperty(int id)
-        {
-            var property = await _context.Properties.FindAsync(id);
-            if (property == null)
+            IQueryable<Property> query = _context.Properties;
+
+            if (userRole == "Landlord")
             {
-                return NotFound();
+                query = query.Where(p => p.UserId == userId);
             }
 
-            return property;
+            var totalProperties = await query.CountAsync();
+
+            var properties = await query
+                .Include(p => p.Houses)
+                .Include(p => p.User)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new PropertyViewModel
+                {
+                    Id = p.Id,
+                    Address = p.Address,
+                    Type = p.Type,
+                    Description = p.Description,
+                    LandlordName = p.User.FullName,
+                    NumberOfHouses = p.Houses.Count
+                })
+                .ToListAsync();
+
+            var viewModel = new PropertyViewModel
+            {
+                Properties = properties,
+                StatusMessage = totalProperties > 0 ? $"{totalProperties} properties found." : "No properties found."
+            };
+
+            // Explicitly reference the correct view path
+            return View("~/Views/Landlord/Property.cshtml", viewModel);
+
         }
 
-        // POST: api/Properties
+
+        // POST: /Landlord/Property/Add
         [HttpPost]
-        public async Task<ActionResult<Property>> CreateProperty(Property property)
+        [Route("Add")]
+        [Authorize(Roles = "Landlord")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Add([Bind("Address,Type,Description")] CreatePropertyDto propertyDto)
         {
-            property.Id = 0;
-            _context.Properties.Add(property);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetProperty), new { id = property.Id }, property);
-        }
-
-        // PUT: api/Properties/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProperty(int id, Property property)
-        {
-            if (id != property.Id)
+            if (ModelState.IsValid)
             {
-                return BadRequest();
-            }
+                var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
 
-            _context.Entry(property).State = EntityState.Modified;
+                var property = new Property
+                {
+                    Address = propertyDto.Address,
+                    Type = propertyDto.Type,
+                    Description = propertyDto.Description,
+                    UserId = userId
+                };
 
-            try
-            {
+                _context.Add(property);
                 await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!PropertyExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+
+                return RedirectToAction(nameof(Index));
             }
 
-            return NoContent();
+            return RedirectToAction(nameof(Index));
         }
 
-        // DELETE: api/Properties/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProperty(int id)
+        // POST: /Landlord/Property/Edit/5
+        [HttpPost]
+        [Route("Edit/{id}")]
+        [Authorize(Roles = "Landlord")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Address,Type,Description")] PropertyDto propertyDto)
         {
+            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+
             var property = await _context.Properties.FindAsync(id);
             if (property == null)
             {
                 return NotFound();
+            }
+
+            if (property.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            if (ModelState.IsValid)
+            {
+                property.Address = propertyDto.Address;
+                property.Type = propertyDto.Type;
+                property.Description = propertyDto.Description;
+
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: /Landlord/Property/Delete/5
+        [Route("Delete/{id}")]
+        [Authorize(Roles = "Landlord")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+
+            var property = await _context.Properties.FindAsync(id);
+            if (property == null)
+            {
+                return NotFound();
+            }
+
+            if (property.UserId != userId)
+            {
+                return Forbid();
             }
 
             _context.Properties.Remove(property);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return RedirectToAction(nameof(Index));
         }
 
         private bool PropertyExists(int id)
