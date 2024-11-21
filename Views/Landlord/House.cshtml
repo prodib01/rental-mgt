@@ -1,0 +1,200 @@
+@model RentalManagementSystem.ViewModels.HouseViewModel
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="display-4">Houses Management</h1>
+            <button class="btn btn-success" data-toggle="modal" data-target="#add-house-modal">
+                <i class="fas fa-plus-circle mr-2"></i>Add New House
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>House Number</th>
+                            <th>Rent</th>
+                            <th>Property Type</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model?.Houses != null && Model.Houses.Any())
+                        {
+                            int index = 1;
+                            foreach (var house in Model.Houses)
+                            {
+                                <tr>
+                                    <td class="text-center">@index</td>
+                                    <td>@house.HouseNumber</td>
+                                    <td>@house.Rent.ToString("C")</td>
+                                    <td>@house.PropertyType</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-warning btn-sm" data-toggle="modal"
+                                                data-target="#edit-house-modal-@house.Id">
+                                                <i class="fas fa-edit mr-1"></i>Edit
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" data-toggle="modal"
+                                                data-target="#delete-house-modal-@house.Id">
+                                                <i class="fas fa-trash-alt mr-1"></i>Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle mr-2"></i>No houses available
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add House Modal -->
+    <div class="modal fade" id="add-house-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle mr-2"></i>Add New House
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form asp-action="Add" method="post">
+                        <div class="form-group">
+                            <label>Rent</label>
+                            <input type="number" name="Rent" class="form-control" step="0.01" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Property Type</label>
+                            <select name="PropertyId" class="form-control" required>
+                                @if (Model.Properties != null && Model.Properties.Any())
+                                {
+                                    foreach (var property in Model.Properties)
+                                    {
+                                        <option value="@property.Value">@property.Text</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="">No properties available</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add House</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit House Modals -->
+    @if (Model?.Houses != null)
+    {
+        foreach (var house in Model.Houses)
+        {
+            <div class="modal fade" id="edit-house-modal-@house.Id" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning">
+                            <h5 class="modal-title">
+                                <i class="fas fa-edit mr-2"></i>Edit House @house.HouseNumber
+                            </h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form asp-action="Edit" asp-route-id="@house.Id" method="post">
+                                <div class="form-group">
+                                    <label>House Number</label>
+                                    <input type="text" name="HouseNumber" class="form-control" value="@house.HouseNumber"
+                                        required />
+                                </div>
+                                <div class="form-group">
+                                    <label>Rent</label>
+                                    <input type="number" name="Rent" class="form-control" value="@house.Rent" step="0.01"
+                                        required />
+                                </div class="form-group">
+                                    <label>Property Type</label>
+                                    <select name="PropertyId" class="form-control" required>
+                                        @if (Model.Properties != null && Model.Properties.Any())
+                                        {
+                                            foreach (var property in Model.Properties)
+                                            {
+                                                <option value="@property.Value">@property.Text</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="">No properties available</option>
+                                        }
+                                    </select>
+                                
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Delete House Modals -->
+    @if (Model?.Houses != null)
+    {
+        foreach (var house in Model.Houses)
+        {
+            <div class="modal fade" id="delete-house-modal-@house.Id" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-trash-alt mr-2"></i>Delete House @house.HouseNumber
+                            </h5>
+                            <button type="button" class="close text-white" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <p class="lead">Are you sure you want to delete this house?</p>
+                            <form asp-action="Delete" asp-route-id="@house.Id" method="post">
+                                <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+}

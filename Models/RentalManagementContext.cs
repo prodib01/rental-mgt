@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 public class RentalManagementContext : DbContext
 {
@@ -44,7 +46,7 @@ public class RentalManagementContext : DbContext
 
             entity.Property(e => e.HouseNumber)
                 .IsRequired()
-                .HasMaxLength(50);  // Adjust max length as needed
+                .HasMaxLength(50);
 
             entity.Property(e => e.Rent)
                 .HasColumnType("decimal(18,2)")
@@ -56,7 +58,6 @@ public class RentalManagementContext : DbContext
                 .HasForeignKey(h => h.PropertyId)
                 .OnDelete(DeleteBehavior.NoAction)
                 .IsRequired();
-
         });
 
         // Configure User entity
@@ -77,11 +78,37 @@ public class RentalManagementContext : DbContext
                 .HasMaxLength(50);
 
             entity.HasOne(h => h.House)
-                .WithOne(h => h.User) // This is invalid because House doesn't have a Users property
+                .WithOne(h => h.User)
                 .HasForeignKey<User>(h => h.HouseId)
                 .OnDelete(DeleteBehavior.NoAction)
                 .IsRequired(false);
-
         });
+    }
+
+    public override int SaveChanges()
+    {
+        GenerateHouseNumbers();
+        return base.SaveChanges();
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        GenerateHouseNumbers();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void GenerateHouseNumbers()
+    {
+        foreach (var entry in ChangeTracker.Entries<House>().Where(e => e.State == EntityState.Added))
+        {
+            entry.Entity.HouseNumber = GenerateUniqueHouseNumber();
+        }
+    }
+
+    private string GenerateUniqueHouseNumber()
+    {
+        // Example: Generate a unique identifier based on the current max ID
+        int maxId = Houses.Max(h => (int?)h.Id) ?? 0;
+        return $"HN-{maxId + 1:D5}";
     }
 }
