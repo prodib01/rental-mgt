@@ -26,7 +26,7 @@ public class User
     public string PhoneNumber { get; set; }
 
     public int? HouseId { get; set; }
-    public House House { get; set; }
+    public House? House { get; set; }
     public ICollection<Property> Properties { get; set; } = new List<Property>();
 
     public bool PasswordChanged { get; set; }

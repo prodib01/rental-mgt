@@ -78,7 +78,7 @@ public class RentalManagementContext : DbContext
                 .HasMaxLength(50);
 
             entity.HasOne(h => h.House)
-                .WithOne(h => h.User)
+                .WithOne(h => h.Tenant)
                 .HasForeignKey<User>(h => h.HouseId)
                 .OnDelete(DeleteBehavior.NoAction)
                 .IsRequired(false);

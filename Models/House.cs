@@ -17,6 +17,6 @@ public class House
     public Property Property { get; set; }
 
     // Add navigation property to User
-    public User User { get; set; }
+    public User? Tenant { get; set; }
 }
 
