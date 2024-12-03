@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace RentalManagementSystem.Controllers
 {
     [Route("Landlord/House")]
+    [Authorize(Roles = "Landlord")]
     public class HousesController : Controller
     {
         private readonly RentalManagementContext _context;
@@ -73,7 +74,6 @@ namespace RentalManagementSystem.Controllers
         // POST: /Landlord/House/Add
         [HttpPost]
         [Route("Add")]
-        [Authorize(Roles = "Landlord")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Add([Bind("HouseNumber, PropertyId, Rent")] CreateHouseDto houseDto)
         {
@@ -108,7 +108,6 @@ namespace RentalManagementSystem.Controllers
         // POST: /Landlord/House/Edit/5
         [HttpPost]
         [Route("Edit/{id}")]
-        [Authorize(Roles = "Landlord")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("HouseNumber, PropertyId")] HouseDto houseDto)
         {
@@ -147,7 +146,6 @@ namespace RentalManagementSystem.Controllers
 
         // GET: /Landlord/House/Delete/5
         [Route("Delete/{id}")]
-        [Authorize(Roles = "Landlord")]
         public async Task<IActionResult> Delete(int id)
         {
             var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");

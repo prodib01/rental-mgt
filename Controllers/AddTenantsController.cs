@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace RentalManagementSystem.Controllers
 {
     [Route("Landlord/Tenants")]
+    [Authorize(Roles = "Landlord")]
     public class AddTenantsController : Controller
     {
         private readonly RentalManagementContext _context;
@@ -61,7 +62,6 @@ namespace RentalManagementSystem.Controllers
         // POST: Add Tenant
         [HttpPost]
         [Route("Add")]
-        // [Authorize(Roles = "Landlord")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddTenant(AddTenantViewModel model)
         {
@@ -138,7 +138,6 @@ namespace RentalManagementSystem.Controllers
         // POST: Edit Tenant
         [HttpPost]
         [Route("Edit/{id}")]
-        [Authorize(Roles = "Landlord")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditTenant(int id, AddTenantViewModel model)
         {
@@ -216,7 +215,6 @@ namespace RentalManagementSystem.Controllers
 
         // POST: Delete Tenant
         [Route("Delete/{id}")]
-        [Authorize(Roles = "Landlord")]
         public async Task<IActionResult> DeleteTenant(int id)
         {
             var tenant = await _context.Users

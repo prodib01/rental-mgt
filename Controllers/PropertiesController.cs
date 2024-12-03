@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 namespace RentalManagementSystem.Controllers
 {
     [Route("Landlord/Property")]
+    [Authorize(Roles = "Landlord")]
     public class PropertiesController : Controller
     {
         private readonly RentalManagementContext _context;
@@ -67,7 +68,6 @@ namespace RentalManagementSystem.Controllers
         // POST: /Landlord/Property/Add
         [HttpPost]
         [Route("Add")]
-        [Authorize(Roles = "Landlord")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Add([Bind("Address,Type,Description")] CreatePropertyDto propertyDto)
         {
@@ -95,7 +95,6 @@ namespace RentalManagementSystem.Controllers
         // POST: /Landlord/Property/Edit/5
         [HttpPost]
         [Route("Edit/{id}")]
-        [Authorize(Roles = "Landlord")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Address,Type,Description")] PropertyDto propertyDto)
         {
@@ -127,7 +126,6 @@ namespace RentalManagementSystem.Controllers
 
         // GET: /Landlord/Property/Delete/5
         [Route("Delete/{id}")]
-        [Authorize(Roles = "Landlord")]
         public async Task<IActionResult> Delete(int id)
         {
             var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
