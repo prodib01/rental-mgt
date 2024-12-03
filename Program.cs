@@ -14,6 +14,7 @@ builder.Logging.AddDebug();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<RentalManagementContext>();
 
 // Add Swagger
 builder.Services.AddSwaggerGen(c =>

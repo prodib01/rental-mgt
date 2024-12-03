@@ -44,15 +44,16 @@ public class AuthService : IAuthService
             throw new ArgumentException("Password does not meet complexity requirements.");
         }
 
-        var passwordHasher = new PasswordHasher<User>();
         var user = new User
         {
             Email = email,
             Role = role,
-            PasswordHash = passwordHasher.HashPassword(null, password),
             LastLoginDate = null,
             FailedLoginAttempts = 0
         };
+
+        // Use BCrypt for password hashing
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -63,15 +64,25 @@ public class AuthService : IAuthService
     // Finds a user by their email
     public async Task<User> FindUserByEmailAsync(string email)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email)
+            ?? throw new InvalidOperationException($"No user found with email {email}");
     }
-
     // Verifies the user's password against the stored hash
     public async Task<bool> VerifyPasswordAsync(User user, string password)
     {
-        var passwordHasher = new PasswordHasher<User>();
-        var result = passwordHasher.VerifyHashedPassword(null, user.PasswordHash, password);
-        return result == PasswordVerificationResult.Success;
+        if (user == null || string.IsNullOrEmpty(password))
+            return false;
+
+        try
+        {
+            // Use BCrypt for password verification
+            return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+        }
+        catch (Exception)
+        {
+            // Log the error if needed
+            return false;
+        }
     }
 
     // Generates a JWT token for authentication
@@ -141,7 +152,9 @@ public class AuthService : IAuthService
 
     public async Task<(User user, string errorMessage)> ValidateLoginAsync(string email, string password)
     {
-        var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == email);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email);
+
         if (user == null)
         {
             return (null, "User not found.");
@@ -152,7 +165,14 @@ public class AuthService : IAuthService
             return (null, "Account locked due to too many failed login attempts.");
         }
 
-        bool isPasswordValid = VerifyPasswordHash(password, user.PasswordHash);
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return (null, "Invalid user account.");
+        }
+
+        // Use the BCrypt verification method
+        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+
         if (!isPasswordValid)
         {
             user.FailedLoginAttempts += 1;
@@ -164,35 +184,32 @@ public class AuthService : IAuthService
         user.FailedLoginAttempts = 0;
         await _context.SaveChangesAsync();
 
-        return (user, null); // Login successful
+        return (user, null);
     }
 
     public async Task<AuthResponse> ValidateAndGenerateTokensAsync(string refreshToken)
     {
-        var user = await _context.Users.SingleOrDefaultAsync(u => u.RefreshToken == refreshToken);
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            throw new UnauthorizedAccessException("Invalid refresh token.");
+        }
+
+        var user = await _context.Users
+            .SingleOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
         if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
         {
             throw new UnauthorizedAccessException("Invalid or expired refresh token.");
         }
 
-        // Generate new tokens
         return await GenerateAuthTokensAsync(user);
     }
-
 
     private bool IsPasswordValid(string password)
     {
         var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
         return regex.IsMatch(password);
     }
-
-    private bool VerifyPasswordHash(string password, string hashedPassword)
-    {
-        var passwordHasher = new PasswordHasher<User>();
-        var result = passwordHasher.VerifyHashedPassword(null, hashedPassword, password);
-        return result == PasswordVerificationResult.Success;
-    }
-
 
     // Generates a secure refresh token
     private string GenerateRefreshToken()
@@ -219,11 +236,3 @@ public class AuthService : IAuthService
 }
 
 
-// DTO for authentication responses
-public class AuthResponse
-{
-    public string Token { get; set; }
-    public string RefreshToken { get; set; }
-    public string Role { get; set; }
-    public DateTime Expiration { get; set; }
-}

@@ -5,7 +5,7 @@ public class User
 {
     public int Id { get; set; }
 
-    public string FullName { get; set; }
+    public string? FullName { get; set; }
 
     [Required]
     [EmailAddress]
@@ -20,7 +20,7 @@ public class User
     public DateTime? LastLoginDate { get; set; }
     public int FailedLoginAttempts { get; set; }
 
-    public string RefreshToken { get; set; }
+    public string? RefreshToken { get; set; }
     public DateTime RefreshTokenExpiryTime { get; set; }
 
     public string PhoneNumber { get; set; }

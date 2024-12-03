@@ -3,6 +3,8 @@
 using Microsoft.AspNetCore.Mvc;
 using RentalManagementSystem.DTOs;
 using RentalManagementSystem.ViewModels;
+
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;  // Add this if it's missing
 
@@ -41,16 +43,26 @@ public class AuthController : Controller
     {
         if (!ModelState.IsValid)
         {
+            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                Console.WriteLine($"ModelState Error: {error.ErrorMessage}");
+            }
+            ViewData["ErrorMessage"] = "Please correct the errors in the form.";
             return View(model);
         }
 
+        Console.WriteLine($"Attempting login for email: {model.Email}");
+
         var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
+
         if (user == null)
         {
+            Console.WriteLine($"Login failed: {errorMessage}");
             ModelState.AddModelError(string.Empty, errorMessage ?? "Invalid login attempt.");
             return View(model);
         }
 
+        Console.WriteLine("Login successful, generating tokens");
         var tokenResponse = await _authService.GenerateAuthTokensAsync(user);
 
         // Store the JWT in a secure cookie
@@ -61,12 +73,14 @@ public class AuthController : Controller
             SameSite = SameSiteMode.Strict
         });
 
-        // Redirect based on user role, with a default 'Unauthorized' role fallback
+        Console.WriteLine($"Redirecting user with role: {user.Role}");
+
+        // Redirect based on user role
         var redirectAction = user.Role switch
         {
             "Landlord" => "Dashboard",
             "Tenant" => "Dashboard",
-            _ => "Unauthorized" // Redirect to a generic or unauthorized page if the role is unknown
+            _ => "Unauthorized"
         };
 
         return RedirectToAction(redirectAction, user.Role);
@@ -75,16 +89,7 @@ public class AuthController : Controller
 
 
     // Keep the existing API methods for registration, refresh token, etc.
-    [HttpPost("register-tenant")]
-    public async Task<IActionResult> RegisterTenant(UserRegistrationDto registrationDto)
-    {
-        var existingTenant = await _context.Users.FirstOrDefaultAsync(u => u.Email == registrationDto.Email && u.Role == "Tenant");
-        if (existingTenant != null)
-            return BadRequest("Tenant already exists.");
 
-        var user = await _authService.RegisterUserAsync(registrationDto.Email, registrationDto.Password, "Tenant");
-        return Ok(user);
-    }
 
     [HttpPost("login")]
     public async Task<IActionResult> ApiLogin([FromBody] UserLoginDto loginDto)

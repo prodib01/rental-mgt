@@ -142,32 +142,34 @@
             }
 
             <!-- Login Form -->
-            <form method="post" class="p-2">
-                <div class="mb-4">
-                    <label for="Email" class="form-label">Email address</label>
-                    <input type="email" id="Email" name="Email" value="@Model.Email" class="form-control" required
-                        placeholder="Enter your email" />
+
+            <form method="post">
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">Email address</label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
                 </div>
 
-                <div class="mb-4">
-                    <label for="Password" class="form-label">Password</label>
-                    <input type="password" id="Password" name="Password" value="@Model.Password" class="form-control"
-                        required placeholder="Enter your password" />
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label">Password</label>
+                    <input asp-for="Password" type="password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
                 </div>
 
-                <div class="d-grid gap-2 mb-4">
-                    <button type="submit" class="btn btn-primary">Sign In</button>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Login</button>
                 </div>
-
-                @* <div class="text-center">
-                    <p class="mb-0">Don't have an account? <a href="/account/register" class="signup-link">Sign up</a>
-                    </p>
-                </div> *@
             </form>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
     <script>
         // Initialize the toasts when the page loads
         document.addEventListener('DOMContentLoaded', function () {

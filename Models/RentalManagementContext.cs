@@ -69,9 +69,6 @@ public class RentalManagementContext : DbContext
                 .IsRequired()
                 .HasMaxLength(256);
 
-            entity.Property(e => e.PasswordHash)
-                .IsRequired()
-                .HasColumnType("varchar(128)");
 
             entity.Property(e => e.Role)
                 .IsRequired()

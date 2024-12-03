@@ -24,8 +24,9 @@ namespace RentalManagementSystem.DTOs
             ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")]
         public string Password { get; set; }
 
-        [Compare("Password")]
+        [Compare("Password", ErrorMessage = "Passwords do not match.")]
         public string ConfirmPassword { get; set; }
+
     }
 
     public class AuthResponse
