@@ -1,0 +1,163 @@
+@model RentalManagementSystem.ViewModels.PaymentViewModel
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Payments</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+    <div class="container py-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Payments</h2>
+                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                    <i class="fas fa-plus me-2"></i>Add Payment
+                </button>
+            </div>
+            <div class="card-body">
+                @if (Model.Payments?.Any() == true)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Amount</th>
+                                    <th>Payment Date</th>
+                                    <th>Method</th>
+                                    <th>Status</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in Model.Payments)
+                                {
+                                    <tr>
+                                        <td>$@payment.Amount.ToString("N2")</td>
+                                        <td>@payment.PaymentDate.ToShortDateString()</td>
+                                        <td>
+                                            <span class="badge bg-info">@payment.PaymentMethod</span>
+                                        </td>
+                                        <td>
+                                            <span
+                                                class="badge @(payment.PaymentStatus == "Completed" ? "bg-success" : "bg-warning")">
+                                                @payment.PaymentStatus
+                                            </span>
+                                        </td>
+                                        <td><small class="text-muted">@payment.PaymentReference</small></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No payments found.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Add Payment Modal -->
+        <div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="addPaymentModalLabel">Add Payment</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form asp-action="Add" method="post" class="needs-validation" novalidate>
+                            <input type="hidden" name="HouseId" value="@Model.HouseId" />
+
+                            @{
+                                var house = Model.Houses.FirstOrDefault(h => h.Value == Model.HouseId.ToString());
+                                var houseNumber = house?.Text ?? "No house assigned";
+                            }
+
+                            <div class="mb-3">
+                                <label class="form-label">House Number</label>
+                                <input type="text" class="form-control" value="@houseNumber" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label for="Amount" class="form-label">Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="Amount" name="Amount" required
+                                        step="0.01" min="0">
+                                    <div class="invalid-feedback">Please enter a valid amount.</div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="PaymentDate" class="form-label">Payment Date</label>
+                                <input type="date" class="form-control" id="PaymentDate" name="PaymentDate" required>
+                                <div class="invalid-feedback">Please select a date.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="PaymentMethod" class="form-label">Payment Method</label>
+                                <select class="form-select" id="PaymentMethod" name="PaymentMethod" required>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Bank">Bank</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a payment method.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="PaymentStatus" class="form-label">Payment Status</label>
+                                <select class="form-select" id="PaymentStatus" name="PaymentStatus" required>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a status.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="Description" class="form-label">Description (Optional)</label>
+                                <textarea class="form-control" id="Description" name="Description" rows="2"></textarea>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>Payment reference will be automatically
+                                generated.
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Submit Payment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Form validation
+        (function () {
+            'use strict'
+            var forms = document.querySelectorAll('.needs-validation')
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+
+        // Set default date to today
+        document.addEventListener('DOMContentLoaded', function () {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('PaymentDate').value = today;
+        });
+    </script>
+</body>
+
+</html>

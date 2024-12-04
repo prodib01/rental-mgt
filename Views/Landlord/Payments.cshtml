@@ -1,68 +1,56 @@
 @model RentalManagementSystem.ViewModels.PaymentViewModel
 
-<div class="container-fluid">
+<div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-12">
-            <h2 class="mb-4">Payment Records</h2>
+            <h2 class="mb-4 text-primary fw-bold">Payment Records</h2>
 
-            @if (!string.IsNullOrEmpty(Model.StatusMessage))
-            {
-                <div class="alert alert-info">
-                    @Model.StatusMessage
-                </div>
-            }
-
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Payment List</h5>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                        data-bs-target="#addPaymentModal">
-                        <i class="fas fa-plus"></i> Add New Payment
-                    </button>
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary">Payment List</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-download me-1"></i>Export
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Amount</th>
-                                    <th>Payment Date</th>
-                                    <th>Payment Method</th>
-                                    <th>Payment Status</th>
-                                    <th>Reference</th>
-                                    <th>House</th>
-                                    <th>User</th>
-                                    <th>Actions</th>
+                                    <th class="fw-semibold">House</th>
+                                    <th class="fw-semibold">User</th>
+                                    <th class="fw-semibold">Amount</th>
+                                    <th class="fw-semibold">Payment Date</th>
+                                    <th class="fw-semibold">Payment Method</th>
+                                    <th class="fw-semibold">Payment Status</th>
+                                    <th class="fw-semibold">Reference</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var payment in Model.Payments)
                                 {
                                     <tr>
-                                        <td>@payment.Amount.ToString("C")</td>
-                                        <td>@payment.PaymentDate.ToShortDateString()</td>
-                                        <td>@payment.PaymentMethod</td>
-                                        <td>@payment.PaymentStatus</td>
-                                        <td>@payment.PaymentReference</td>
                                         <td>@payment.House?.HouseNumber</td>
                                         <td>@payment.User?.FullName</td>
+                                        <td class="fw-semibold">@payment.Amount.ToString("C")</td>
+                                        <td>@payment.PaymentDate.ToShortDateString()</td>
                                         <td>
-                                            <div class="btn-group" role="group">
-                                                <button type="button" class="btn btn-sm btn-warning edit-payment"
-                                                    data-id="@payment.Id" data-amount="@payment.Amount"
-                                                    data-payment-date="@payment.PaymentDate.ToString("yyyy-MM-dd")"
-                                                    data-payment-method="@payment.PaymentMethod"
-                                                    data-payment-status="@payment.PaymentStatus"
-                                                    data-payment-reference="@payment.PaymentReference"
-                                                    data-house-id="@payment.HouseId" data-user-id="@payment.UserId">
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-danger delete-payment"
-                                                    data-id="@payment.Id">
-                                                    <i class="fas fa-trash"></i> Delete
-                                                </button>
-                                            </div>
+                                            <span class="badge bg-secondary">@payment.PaymentMethod</span>
                                         </td>
+                                        <td>
+                                            @{
+                                                var statusClass = payment.PaymentStatus.ToLower() switch
+                                                {
+                                                    "completed" => "bg-success",
+                                                    "pending" => "bg-warning",
+                                                    "failed" => "bg-danger",
+                                                    _ => "bg-secondary"
+                                                };
+                                            }
+                                            <span class="badge @statusClass">@payment.PaymentStatus</span>
+                                        </td>
+                                        <td><small class="text-muted">@payment.PaymentReference</small></td>
                                     </tr>
                                 }
                             </tbody>
@@ -74,177 +62,7 @@
     </div>
 </div>
 
-<!-- Add Payment Modal -->
-<div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addPaymentModalLabel">Add New Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form asp-action="Add" asp-controller="Payment" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="Amount" class="form-label">Amount</label>
-                        <input type="number" name="Amount" class="form-control" step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="PaymentDate" class="form-label">Payment Date</label>
-                        <input type="date" name="PaymentDate" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="PaymentMethod" class="form-label">Payment Method</label>
-                        <select name="PaymentMethod" class="form-select" required>
-                            <option value="">Select Payment Method</option>
-                            <option value="Cash">Cash</option>
-                            <option value="BankTransfer">Bank Transfer</option>
-                            <option value="CreditCard">Credit Card</option>
-                            <option value="PayPal">PayPal</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="PaymentStatus" class="form-label">Payment Status</label>
-                        <select name="PaymentStatus" class="form-select" required>
-                            <option value="">Select Payment Status</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Failed">Failed</option>
-                            <option value="Refunded">Refunded</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="Description" class="form-label">Description</label>
-                        <textarea name="Description" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="HouseId" class="form-label">House</label>
-                        <select name="HouseId" class="form-select" required>
-                            <option value="">Select House</option>
-                            @foreach (var house in Model.Houses)
-                            {
-                                <option value="@house.Value">@house.Text</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="UserId" class="form-label">User</label>
-                        <select name="UserId" class="form-select" required>
-                            <option value="">Select User</option>
-                            @foreach (var user in Model.Users)
-                            {
-                                <option value="@user.Value">@user.Text</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Payment</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Payment Modal -->
-<div class="modal fade" id="editPaymentModal" tabindex="-1" aria-labelledby="editPaymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editPaymentModalLabel">Edit Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form asp-action="Edit" asp-controller="Payment" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="Id" id="editPaymentId">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="Amount" class="form-label">Amount</label>
-                        <input type="number" name="Amount" id="editAmount" class="form-control" step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="PaymentDate" class="form-label">Payment Date</label>
-                        <input type="date" name="PaymentDate" id="editPaymentDate" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="PaymentMethod" class="form-label">Payment Method</label>
-                        <select name="PaymentMethod" id="editPaymentMethod" class="form-select" required>
-                            <option value="Cash">Cash</option>
-                            <option value="BankTransfer">Bank Transfer</option>
-                            <option value="CreditCard">Credit Card</option>
-                            <option value="PayPal">PayPal</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="PaymentStatus" class="form-label">Payment Status</label>
-                        <select name="PaymentStatus" id="editPaymentStatus" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Failed">Failed</option>
-                            <option value="Refunded">Refunded</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="Description" class="form-label">Description</label>
-                        <textarea name="Description" id="editDescription" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="HouseId" class="form-label">House</label>
-                        <select name="HouseId" id="editHouseId" class="form-select" required>
-                            <option value="">Select House</option>
-                            @foreach (var house in Model.Houses)
-                            {
-                                <option value="@house.Value">@house.Text</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="UserId" class="form-label">User</label>
-                        <select name="UserId" id="editUserId" class="form-select" required>
-                            <option value="">Select User</option>
-                            @foreach (var user in Model.Users)
-                            {
-                                <option value="@user.Value">@user.Text</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Payment</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
-    <script>
-        $(document).ready(function () {
-            // Edit Payment Modal Populate
-            $('.edit-payment').on('click', function () {
-                var button = $(this);
-                $('#editPaymentId').val(button.data('id'));
-                $('#editAmount').val(button.data('amount'));
-                $('#editPaymentDate').val(button.data('payment-date'));
-                $('#editPaymentMethod').val(button.data('payment-method'));
-                $('#editPaymentStatus').val(button.data('payment-status'));
-                $('#editHouseId').val(button.data('house-id'));
-                $('#editUserId').val(button.data('user-id'));
-                $('#editDescription').val(button.data('description'));
-
-                $('#editPaymentModal').modal('show');
-            });
-
-            // Delete Payment Confirmation
-            $('.delete-payment').on('click', function () {
-                if (confirm('Are you sure you want to delete this payment?')) {
-                    window.location.href = '/Landlord/Payments/Delete/' + $(this).data('id');
-                }
-            });
-        });
-    </script>
+    <!-- Include Bootstrap Icons CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 }
