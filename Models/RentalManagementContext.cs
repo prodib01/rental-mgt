@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using RentalManagementSystem.Models;
+
 
 public class RentalManagementContext : DbContext
 {
@@ -14,6 +16,7 @@ public class RentalManagementContext : DbContext
     public DbSet<Property> Properties { get; set; }
     public DbSet<House> Houses { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<Payment> Payments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,7 +72,6 @@ public class RentalManagementContext : DbContext
                 .IsRequired()
                 .HasMaxLength(256);
 
-
             entity.Property(e => e.Role)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -80,6 +82,43 @@ public class RentalManagementContext : DbContext
                 .OnDelete(DeleteBehavior.NoAction)
                 .IsRequired(false);
         });
+
+        // Configure Payment entity
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.ToTable("Payments");
+
+            entity.Property(e => e.Amount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            entity.Property(e => e.PaymentDate)
+                .IsRequired();
+
+            entity.Property(e => e.PaymentMethod)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.PaymentStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.PaymentReference)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
+
+
+            entity.HasOne(p => p.House)
+            .WithMany(h => h.Payments)
+            .HasForeignKey(p => p.HouseId);
+
+            entity.HasOne(p => p.User)
+            .WithMany(u => u.Payments)
+            .HasForeignKey(p => p.UserId);
+        });
+
     }
 
     public override int SaveChanges()
@@ -108,4 +147,6 @@ public class RentalManagementContext : DbContext
         int maxId = Houses.Max(h => (int?)h.Id) ?? 0;
         return $"HN-{maxId + 1:D5}";
     }
+
+
 }

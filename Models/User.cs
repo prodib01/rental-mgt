@@ -1,5 +1,5 @@
-// Models/User.cs
 using System.ComponentModel.DataAnnotations;
+using RentalManagementSystem.Models;
 
 public class User
 {
@@ -28,6 +28,6 @@ public class User
     public int? HouseId { get; set; }
     public House? House { get; set; }
     public ICollection<Property> Properties { get; set; } = new List<Property>();
-
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public bool PasswordChanged { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using RentalManagementSystem.Models;
 
 public class House
 {
@@ -18,5 +19,6 @@ public class House
 
     // Add navigation property to User
     public User? Tenant { get; set; }
+    public ICollection<Payment> Payments { get; set; }
 }
 

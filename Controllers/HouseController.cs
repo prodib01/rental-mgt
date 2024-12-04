@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace RentalManagementSystem.Controllers
 {
     [Route("Landlord/House")]
-    [Authorize(Roles = "Landlord")]
+    // [Authorize(Roles = "Landlord")]
     public class HousesController : Controller
     {
         private readonly RentalManagementContext _context;

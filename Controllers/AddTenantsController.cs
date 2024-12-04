@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace RentalManagementSystem.Controllers
 {
     [Route("Landlord/Tenants")]
-    [Authorize(Roles = "Landlord")]
+    // [Authorize(Roles = "Landlord")]
     public class AddTenantsController : Controller
     {
         private readonly RentalManagementContext _context;
