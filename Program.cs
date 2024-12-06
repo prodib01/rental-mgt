@@ -16,6 +16,14 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<RentalManagementContext>();
 
+// Add session support
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Set session timeout
+    options.Cookie.HttpOnly = true; // Ensures that the cookie is accessible only through the HTTP request
+    options.Cookie.IsEssential = true; // Required for session cookies to function properly
+});
+
 // Add Swagger
 builder.Services.AddSwaggerGen(c =>
 {
@@ -111,8 +119,8 @@ else
 }
 
 // Correct middleware order is important!
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Add session middleware
+app.UseSession();
 
 // CORS must come before authentication
 app.UseCors("AllowAll");

@@ -1,12 +1,10 @@
-// Controllers/AuthController.cs
-
 using Microsoft.AspNetCore.Mvc;
 using RentalManagementSystem.DTOs;
 using RentalManagementSystem.ViewModels;
-
-
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;  // Add this if it's missing
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
 
 public class AuthController : Controller
 {
@@ -24,7 +22,6 @@ public class AuthController : Controller
     {
         var model = new LoginViewModel();
 
-        // Pass any success or error message to the view
         if (TempData["SuccessMessage"] != null)
         {
             ViewData["SuccessMessage"] = TempData["SuccessMessage"];
@@ -75,7 +72,10 @@ public class AuthController : Controller
 
         Console.WriteLine($"Redirecting user with role: {user.Role}");
 
-        // Redirect based on user role
+        // Optionally, store the user's role in session or claims for easier access
+        HttpContext.Session.SetString("UserRole", user.Role);
+        HttpContext.Session.SetString("UserId", user.Id.ToString());
+
         var redirectAction = user.Role switch
         {
             "Landlord" => "Dashboard",
@@ -85,11 +85,6 @@ public class AuthController : Controller
 
         return RedirectToAction(redirectAction, user.Role);
     }
-
-
-
-    // Keep the existing API methods for registration, refresh token, etc.
-
 
     [HttpPost("login")]
     public async Task<IActionResult> ApiLogin([FromBody] UserLoginDto loginDto)
