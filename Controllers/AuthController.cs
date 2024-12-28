@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 
 public class AuthController : Controller
@@ -46,98 +47,99 @@ public class AuthController : Controller
         return View(model);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Login(LoginViewModel model)
+[HttpPost]
+public async Task<IActionResult> Login(LoginViewModel model)
+{
+    if (!ModelState.IsValid)
     {
-        if (!ModelState.IsValid)
-        {
-            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-            {
-                _logger.LogError($"ModelState Error: {error.ErrorMessage}");
-            }
-            return View(model);
-        }
-
-        var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
-
-        if (user == null)
-        {
-            ModelState.AddModelError(string.Empty, errorMessage);
-            _logger.LogWarning($"Login failed for email: {model.Email}. Reason: {errorMessage}");
-            return View(model);
-        }
-
-        var authResponse = await _authService.GenerateAuthTokensAsync(user);
-
-        // Set tokens in cookies
-        Response.Cookies.Append("AccessToken", authResponse.Token, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Expires = authResponse.Expiration
-        });
-
-        Response.Cookies.Append("RefreshToken", authResponse.RefreshToken, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Expires = DateTime.UtcNow.AddDays(7)
-        });
-
-        _logger.LogInformation($"User {user.Email} logged in successfully with role: {user.Role}");
-        TempData["SuccessMessage"] = "Login successful!";
-        
-        // Redirect based on user role
-        return RedirectToUserDashboard(user.Role);
+        return View(model);
     }
+
+    var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
+
+    if (user == null)
+    {
+        ModelState.AddModelError(string.Empty, errorMessage);
+        return View(model);
+    }
+
+    // Generate JWT tokens
+    var authResponse = await _authService.GenerateAuthTokensAsync(user);
+
+    // Create claims for cookie authentication
+    var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, user.Email),
+        new Claim(ClaimTypes.Role, user.Role),
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+    };
+
+    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    var authProperties = new AuthenticationProperties
+    {
+        IsPersistent = true,
+        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
+    };
+
+    // Sign in with cookie authentication
+    await HttpContext.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        new ClaimsPrincipal(claimsIdentity),
+        authProperties);
+
+    // Set JWT tokens in cookies
+    Response.Cookies.Append("AccessToken", authResponse.Token, new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Strict,
+        Expires = authResponse.Expiration
+    });
+
+    Response.Cookies.Append("RefreshToken", authResponse.RefreshToken, new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Strict,
+        Expires = DateTime.UtcNow.AddDays(7)
+    });
+
+    return RedirectToUserDashboard(user.Role);
+}
 
 [HttpPost]
 public async Task<IActionResult> Logout()
 {
     try
     {
-        // Get the current user's email from claims
+        // Get the current user's email
         var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
 
         if (!string.IsNullOrEmpty(userEmail))
         {
-            // Optionally, perform server-side token revocation if you store tokens
+            // Clear tokens in database
             await _authService.LogoutUserAsync(userEmail);
         }
 
-        // Clear client-side authentication cookies
-        Response.Cookies.Delete("AccessToken", new CookieOptions
-        {
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            HttpOnly = true
-        });
+        // Clear all authentication cookies
+        await HttpContext.SignOutAsync();
 
-        Response.Cookies.Delete("RefreshToken", new CookieOptions
-        {
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            HttpOnly = true
-        });
-
-        // Clear any additional session or custom cookies
+        // Clear your custom cookies
+        Response.Cookies.Delete("AccessToken");
+        Response.Cookies.Delete("RefreshToken");
         Response.Cookies.Delete("Role");
 
-        // Clear session data
+        // Clear session
         HttpContext.Session.Clear();
 
         _logger.LogInformation($"User {userEmail} logged out successfully");
         
-        TempData["SuccessMessage"] = "You have been successfully logged out.";
-        return RedirectToAction("Login");
+        return RedirectToAction("Login", "Auth");
     }
     catch (Exception ex)
     {
         _logger.LogError($"Error during logout: {ex.Message}");
-        TempData["ErrorMessage"] = "An error occurred during logout.";
-        return RedirectToAction("Login");
+        return RedirectToAction("Login", "Auth");
     }
 }
 

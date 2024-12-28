@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
+[Authorize]
 public class LandlordController : Controller
 {
     public IActionResult Dashboard()
