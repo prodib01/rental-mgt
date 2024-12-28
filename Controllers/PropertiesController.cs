@@ -6,11 +6,12 @@ using RentalManagementSystem.ViewModels;
 using RentalManagementSystem.DTOs;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace RentalManagementSystem.Controllers
 {
+    [Authorize]
     [Route("Landlord/Property")]
-    // [Authorize(Roles = "Landlord")]
     public class PropertiesController : Controller
     {
         private readonly RentalManagementContext _context;
@@ -20,49 +21,60 @@ namespace RentalManagementSystem.Controllers
             _context = context;
         }
 
-        // GET: /Landlord/Property
-        [HttpGet]
-        [Route("")]
-        public async Task<IActionResult> Property(int page = 1, int pageSize = 10)
+// GET: /Landlord/Property
+[HttpGet]
+[Route("")]
+public async Task<IActionResult> Property(int page = 1, int pageSize = 10)
+{
+    // Get the logged-in user's ID and ensure it is a valid integer
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!int.TryParse(userIdStr, out var userId))
+    {
+        return Unauthorized("Invalid User ID.");
+    }
+
+    // Get the user's role (could be used for role-based filtering, if necessary)
+    var userRole = User.FindFirst("Role")?.Value;
+
+    // Ensure that only properties belonging to the logged-in user are fetched
+    IQueryable<Property> query = _context.Properties.Where(p => p.UserId == userId);
+
+    // Apply filtering if the user role is "Landlord" (optional role-based access)
+    if (userRole == "Landlord")
+    {
+        query = query.Where(p => p.UserId == userId); // This line ensures only the logged-in user's properties are fetched
+    }
+
+    // Get the total number of properties for pagination
+    var totalProperties = await query.CountAsync();
+
+    // Get the properties for the current page
+    var properties = await query
+        .Include(p => p.Houses)    // Include related houses (if any)
+        .Include(p => p.User)      // Include user details (landlord info)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(p => new PropertyViewModel
         {
-            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
-            var userRole = User.FindFirst("Role")?.Value;
+            Id = p.Id,
+            Address = p.Address,
+            Type = p.Type,
+            Description = p.Description,
+            LandlordName = p.User.FullName,   // Assuming User has a FullName property
+            NumberOfHouses = p.Houses.Count  // Assuming Houses is a collection
+        })
+        .ToListAsync();
 
-            IQueryable<Property> query = _context.Properties;
+    // Prepare the view model to pass to the view
+    var viewModel = new PropertyViewModel
+    {
+        Properties = properties,
+        StatusMessage = totalProperties > 0 ? $"{totalProperties} properties found." : "No properties found."
+    };
 
-            if (userRole == "Landlord")
-            {
-                query = query.Where(p => p.UserId == userId);
-            }
-
-            var totalProperties = await query.CountAsync();
-
-            var properties = await query
-                .Include(p => p.Houses)
-                .Include(p => p.User)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new PropertyViewModel
-                {
-                    Id = p.Id,
-                    Address = p.Address,
-                    Type = p.Type,
-                    Description = p.Description,
-                    LandlordName = p.User.FullName,
-                    NumberOfHouses = p.Houses.Count
-                })
-                .ToListAsync();
-
-            var viewModel = new PropertyViewModel
-            {
-                Properties = properties,
-                StatusMessage = totalProperties > 0 ? $"{totalProperties} properties found." : "No properties found."
-            };
-
-            // Explicitly reference the correct view path
-            return View("~/Views/Landlord/Property.cshtml", viewModel);
-
-        }
+    // Return the properties view with the prepared view model
+    return View("~/Views/Landlord/Property.cshtml", viewModel);
+}
 
 
         // POST: /Landlord/Property/Add
@@ -73,7 +85,11 @@ namespace RentalManagementSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdStr, out var userId))
+                {
+                    return Unauthorized("Invalid User ID.");
+                }
 
                 var property = new Property
                 {
@@ -86,10 +102,10 @@ namespace RentalManagementSystem.Controllers
                 _context.Add(property);
                 await _context.SaveChangesAsync();
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Property));
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Property));
         }
 
         // POST: /Landlord/Property/Edit/5
@@ -98,7 +114,11 @@ namespace RentalManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Address,Type,Description")] PropertyDto propertyDto)
         {
-            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized("Invalid User ID.");
+            }
 
             var property = await _context.Properties.FindAsync(id);
             if (property == null)
@@ -118,17 +138,21 @@ namespace RentalManagementSystem.Controllers
                 property.Description = propertyDto.Description;
 
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Property));
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Property));
         }
 
         // GET: /Landlord/Property/Delete/5
         [Route("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized("Invalid User ID.");
+            }
 
             var property = await _context.Properties.FindAsync(id);
             if (property == null)
@@ -144,7 +168,7 @@ namespace RentalManagementSystem.Controllers
             _context.Properties.Remove(property);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Property));
         }
 
         private bool PropertyExists(int id)
