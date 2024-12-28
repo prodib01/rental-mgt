@@ -69,7 +69,8 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // Create claims for cookie authentication
     var claims = new List<Claim>
     {
-        new Claim(ClaimTypes.Name, user.Email),
+        new Claim(ClaimTypes.Name, user.FullName),
+        new Claim(ClaimTypes.Email, user.Email),
         new Claim(ClaimTypes.Role, user.Role),
         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
     };
