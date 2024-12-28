@@ -42,7 +42,7 @@ namespace RentalManagementSystem.Controllers
                 }).ToListAsync();
 
             var availableHouses = await _context.Houses
-                .Where(h => h.Tenant == null && !h.IsDeleted)
+                .Where(h => h.Tenant == null && !h.IsOccupied)
                 .Select(h => new SelectListItem
                 {
                     Value = h.HouseNumber,
@@ -90,7 +90,7 @@ namespace RentalManagementSystem.Controllers
 
             // Find the house by house number
             var house = await _context.Houses
-                .FirstOrDefaultAsync(h => h.HouseNumber == model.HouseNumber && h.Tenant == null && !h.IsDeleted);
+                .FirstOrDefaultAsync(h => h.HouseNumber == model.HouseNumber && h.Tenant == null && !h.IsOccupied);
 
             if (house == null)
             {
@@ -174,7 +174,7 @@ namespace RentalManagementSystem.Controllers
                     var newHouse = await _context.Houses
                         .FirstOrDefaultAsync(h => h.HouseNumber == model.HouseNumber &&
                                                   (h.Tenant == null || h.Tenant.Id == tenant.Id) &&
-                                                  !h.IsDeleted);
+                                                  !h.IsOccupied);
 
                     if (newHouse == null)
                     {

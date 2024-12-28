@@ -7,7 +7,7 @@ namespace RentalManagementSystem.DTOs
         public int Id { get; set; }
         public string HouseNumber { get; set; }
         public decimal Rent { get; set; }
-        public bool IsDeleted { get; set; }
+        public bool IsOccupied { get; set; }
         public int PropertyId { get; set; }
         public int UserId { get; set; }
     }

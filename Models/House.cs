@@ -11,7 +11,8 @@ public class House
     [Required]
     public decimal Rent { get; set; }
 
-    public bool IsDeleted { get; set; } = false;
+    public bool IsOccupied { get; set; } = false;
+
 
     // Foreign key to Property
     public int PropertyId { get; set; }

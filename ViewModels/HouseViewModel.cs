@@ -15,7 +15,7 @@ namespace RentalManagementSystem.ViewModels
         [DataType(DataType.Currency)]
         public decimal Rent { get; set; }
 
-        public bool IsDeleted { get; set; }
+        public bool IsOccupied { get; set; }
 
         [Required]
         [Display(Name = "Property Type")]
