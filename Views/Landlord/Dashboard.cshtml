@@ -279,65 +279,91 @@
 
                 <!-- Tables Row -->
                 <div class="row g-4">
-                    <!-- Recent Payments -->
-                    <div class="col-md-6">
-                        <div class="dashboard-card">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">Recent Payments</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Tenant</th>
-                                                <th>Property</th>
-                                                <th>Amount</th>
-                                                <th>Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var payment in Model.RecentPayments)
-                                            {
-                                                <tr>
-                                                    <td class="fw-semibold">@payment.TenantName</td>
-                                                    <td>@payment.PropertyAddress</td>
-                                                    <td class="fw-semibold text-success">$@payment.Amount.ToString("N2")
-                                                    </td>
-                                                    <td>@payment.PaymentDate.ToShortDateString()</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<!-- Recent Payments -->
+<div class="col-md-6">
+    <div class="dashboard-card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Recent Payments</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tenant</th>
+                            <th>Property</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RecentPayments != null && Model.RecentPayments.Any())
+                        {
+                            foreach (var payment in Model.RecentPayments)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@payment.TenantName</td>
+                                    <td>@payment.PropertyAddress</td>
+                                    <td class="fw-semibold text-success">$@payment.Amount.ToString("N2")</td>
+                                    <td>@payment.PaymentDate.ToShortDateString()</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center">No recent payments available.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 
                     <!-- Vacant Properties -->
-                    <div class="col-md-6">
-                        <div class="dashboard-card">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">Vacant Properties</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Address</th>
-                                                <th>Monthly Rent</th>
-                                                <th>Vacant Since</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @* Commented out section for vacant properties *@
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<div class="col-md-6">
+    <div class="dashboard-card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Vacant Houses</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Address</th>
+                            <th>Monthly Rent</th>
+                            <th>Vacant Since</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.VacantHouses != null && Model.VacantHouses.Any())
+                        {
+                            foreach (var house in Model.VacantHouses)
+                            {
+                                <tr>
+                                    <td>@house.Address</td>
+                                    <td>@house.MonthlyRent.ToString("C")</td>
+                                    <td>@house.VacantSince?.ToShortDateString() ?? "Unknown"</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center">No vacant houses available.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
                 </div>
             </div>
         </div>

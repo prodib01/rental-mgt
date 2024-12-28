@@ -10,7 +10,7 @@ namespace RentalManagementSystem.ViewModels
         public int PendingMaintenanceRequests { get; set; }
         public int UpcomingLeaseRenewals { get; set; }
         public List<RecentPaymentViewModel> RecentPayments { get; set; }
-        // public List<PropertyViewModel> VacantPropertiesList { get; set; }
+        public List<VacantHouseViewModel> VacantHouses { get; set; } // New property
     }
 
     public class RecentPaymentViewModel
@@ -21,5 +21,10 @@ namespace RentalManagementSystem.ViewModels
         public DateTime PaymentDate { get; set; }
     }
 
-
+    public class VacantHouseViewModel // New class for vacant houses
+    {
+        public string Address { get; set; }
+        public decimal MonthlyRent { get; set; }
+        public DateTime? VacantSince { get; set; } // Nullable for better handling
+    }
 }
