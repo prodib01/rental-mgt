@@ -1,12 +1,13 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RentalManagementSystem.Models;
 using RentalManagementSystem.ViewModels;
-using RentalManagementSystem.DTOs;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RentalManagementSystem.Controllers
 {
@@ -15,43 +16,43 @@ namespace RentalManagementSystem.Controllers
     public class PropertiesController : Controller
     {
         private readonly RentalManagementContext _context;
+        private readonly ILogger<PropertiesController> _logger;
 
-        public PropertiesController(RentalManagementContext context)
+private int GetCurrentUserId()
+{
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!int.TryParse(userIdStr, out var userId))
+    {
+        throw new UnauthorizedAccessException("Invalid User ID.");
+    }
+    return userId;
+}
+
+
+        public PropertiesController(RentalManagementContext context, ILogger<PropertiesController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-// GET: /Landlord/Property
 [HttpGet]
 [Route("")]
-public async Task<IActionResult> Property(int page = 1, int pageSize = 10)
+public async Task<IActionResult> Properties(int page = 1, int pageSize = 10)
 {
-    // Get the logged-in user's ID and ensure it is a valid integer
     var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     if (!int.TryParse(userIdStr, out var userId))
     {
         return Unauthorized("Invalid User ID.");
     }
 
-    // Get the user's role (could be used for role-based filtering, if necessary)
-    var userRole = User.FindFirst("Role")?.Value;
+    var query = _context.Properties
+        .Where(p => p.UserId == userId);
 
-    // Ensure that only properties belonging to the logged-in user are fetched
-    IQueryable<Property> query = _context.Properties.Where(p => p.UserId == userId);
-
-    // Apply filtering if the user role is "Landlord" (optional role-based access)
-    if (userRole == "Landlord")
-    {
-        query = query.Where(p => p.UserId == userId); // This line ensures only the logged-in user's properties are fetched
-    }
-
-    // Get the total number of properties for pagination
     var totalProperties = await query.CountAsync();
 
-    // Get the properties for the current page
     var properties = await query
-        .Include(p => p.Houses)    // Include related houses (if any)
-        .Include(p => p.User)      // Include user details (landlord info)
+        .Include(p => p.Houses)
+        .Include(p => p.User)
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .Select(p => new PropertyViewModel
@@ -60,120 +61,170 @@ public async Task<IActionResult> Property(int page = 1, int pageSize = 10)
             Address = p.Address,
             Type = p.Type,
             Description = p.Description,
-            LandlordName = p.User.FullName,   // Assuming User has a FullName property
-            NumberOfHouses = p.Houses.Count  // Assuming Houses is a collection
+            NumberOfHouses = p.Houses.Count
         })
         .ToListAsync();
 
-    // Prepare the view model to pass to the view
-    var viewModel = new PropertyViewModel
+    var viewModel = new PropertyListViewModel
     {
         Properties = properties,
-        StatusMessage = totalProperties > 0 ? $"{totalProperties} properties found." : "No properties found."
+        NewProperty = new PropertyViewModel()
     };
 
-    // Return the properties view with the prepared view model
     return View("~/Views/Landlord/Property.cshtml", viewModel);
 }
 
 
-        // POST: /Landlord/Property/Add
-        [HttpPost]
-        [Route("Add")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Add([Bind("Address,Type,Description")] CreatePropertyDto propertyDto)
+
+[HttpPost]
+[Route("AddProperty")]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AddProperty(PropertyViewModel model)
+{
+    _logger.LogInformation("AddProperty method called");
+    _logger.LogInformation($"Model data - Address: {model.Address}, Type: {model.Type}, Description: {model.Description}");
+
+    if (!ModelState.IsValid)
+    {
+        foreach (var modelStateEntry in ModelState.Values)
         {
-            if (ModelState.IsValid)
+            foreach (var error in modelStateEntry.Errors)
             {
-                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdStr, out var userId))
-                {
-                    return Unauthorized("Invalid User ID.");
-                }
-
-                var property = new Property
-                {
-                    Address = propertyDto.Address,
-                    Type = propertyDto.Type,
-                    Description = propertyDto.Description,
-                    UserId = userId
-                };
-
-                _context.Add(property);
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction(nameof(Property));
+                _logger.LogError($"Model validation error: {error.ErrorMessage}");
             }
+        }
+        TempData["ErrorMessage"] = "Please correct the form errors.";
+        return RedirectToAction("Properties");
+    }
 
-            return RedirectToAction(nameof(Property));
+    try
+    {
+        var userId = GetCurrentUserId();
+        _logger.LogInformation($"Current user ID: {userId}");
+
+        var propertyExists = await _context.Properties
+            .AnyAsync(p => p.Address == model.Address && p.UserId == userId);
+            
+        if (propertyExists)
+        {
+            _logger.LogWarning($"Property with address {model.Address} already exists for user {userId}");
+            TempData["ErrorMessage"] = "A property with this address already exists.";
+            return RedirectToAction("Properties");
         }
 
-        // POST: /Landlord/Property/Edit/5
+        var property = new Property
+        {
+            Address = model.Address,
+            Type = model.Type,
+            Description = model.Description,
+            UserId = userId,
+        };
+
+        _context.Properties.Add(property);
+        await _context.SaveChangesAsync();
+        _logger.LogInformation($"Property added successfully. ID: {property.Id}");
+
+        TempData["SuccessMessage"] = "Property added successfully.";
+        return RedirectToAction("Properties");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error adding property");
+        TempData["ErrorMessage"] = $"An error occurred while adding the property: {ex.Message}";
+        return RedirectToAction("Properties");
+    }
+}
+
+
+        // POST: Edit Property
         [HttpPost]
         [Route("Edit/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Address,Type,Description")] PropertyDto propertyDto)
+        public async Task<IActionResult> EditProperty(int id, PropertyViewModel model)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdStr, out var userId))
+            if (!ModelState.IsValid)
             {
-                return Unauthorized("Invalid User ID.");
+                TempData["ErrorMessage"] = "Please correct the form errors.";
+                return RedirectToAction("Properties");
             }
 
-            var property = await _context.Properties.FindAsync(id);
+            var property = await _context.Properties
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             if (property == null)
             {
                 return NotFound();
             }
 
-            if (property.UserId != userId)
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                return Forbid();
+                try
+                {
+                    // Update property details
+                    property.Address = model.Address;
+                    property.Type = model.Type;
+                    property.Description = model.Description;
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    TempData["SuccessMessage"] = "Property updated successfully.";
+                    return RedirectToAction("Properties");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error editing property");
+                    TempData["ErrorMessage"] = "An error occurred while updating the property.";
+                    return RedirectToAction("Properties");
+                }
             }
+        }
 
-            if (ModelState.IsValid)
+[HttpPost]
+[Route("Delete/{id}")]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> DeleteProperty(int id)
+{
+    try
+    {
+        var userId = GetCurrentUserId();
+        var property = await _context.Properties
+            .Include(p => p.Houses)  // Include related houses
+            .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+
+        if (property == null)
+        {
+            _logger.LogWarning($"Property with ID {id} not found or does not belong to user {userId}");
+            return Json(new { success = false, message = "Property not found." });
+        }
+
+        using (var transaction = await _context.Database.BeginTransactionAsync())
+        {
+            try
             {
-                property.Address = propertyDto.Address;
-                property.Type = propertyDto.Type;
-                property.Description = propertyDto.Description;
-
+                // Remove the property (this will also remove related houses due to cascade delete)
+                _context.Properties.Remove(property);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Property));
+                await transaction.CommitAsync();
+
+                _logger.LogInformation($"Property {id} and its relationships successfully deleted");
+                return Json(new { success = true, message = "Property deleted successfully." });
             }
-
-            return RedirectToAction(nameof(Property));
-        }
-
-        // GET: /Landlord/Property/Delete/5
-        [Route("Delete/{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdStr, out var userId))
+            catch (Exception ex)
             {
-                return Unauthorized("Invalid User ID.");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Error during property deletion transaction for property {id}");
+                return Json(new { success = false, message = "Database error occurred while deleting property." });
             }
-
-            var property = await _context.Properties.FindAsync(id);
-            if (property == null)
-            {
-                return NotFound();
-            }
-
-            if (property.UserId != userId)
-            {
-                return Forbid();
-            }
-
-            _context.Properties.Remove(property);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Property));
         }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, $"Unexpected error deleting property {id}");
+        return Json(new { success = false, message = "An unexpected error occurred." });
+    }
+}
 
-        private bool PropertyExists(int id)
-        {
-            return _context.Properties.Any(e => e.Id == id);
-        }
     }
 }

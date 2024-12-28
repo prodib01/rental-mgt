@@ -12,11 +12,8 @@ public class Property
     public string Type { get; set; }
 
     [Required]
-    [DataType(DataType.Currency)]
-
+    [StringLength(1000)]
     public string Description { get; set; }
-
-    public bool IsDeleted { get; set; } = false;
 
     // Foreign key to User (Landlord)
     public int UserId { get; set; }

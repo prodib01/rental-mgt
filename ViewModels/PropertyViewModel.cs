@@ -1,37 +1,33 @@
-using System.ComponentModel.DataAnnotations;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace RentalManagementSystem.ViewModels
 {
-    public class PropertyViewModel
-    {
-        public int Id { get; set; }
 
-        [Required]
-        [Display(Name = "Property Address")]
-        public string Address { get; set; }
+public class PropertyViewModel
+{
+    public int Id { get; set; }
 
-        [Required]
-        [Display(Name = "Property Type")]
-        public string Type { get; set; }
+    [Required(ErrorMessage = "Address is required")]
+    [StringLength(200, ErrorMessage = "Address cannot be longer than 200 characters")]
+    public string Address { get; set; }
 
-        [Required]
-        [Display(Name = "Description")]
-        public string Description { get; set; }
+    [Required(ErrorMessage = "Property type is required")]
+    [StringLength(50, ErrorMessage = "Type cannot be longer than 50 characters")]
+    public string Type { get; set; }
 
-        public int NumberOfHouses { get; set; }
+    [Required(ErrorMessage = "Description is required")]
+    [StringLength(1000, ErrorMessage = "Description cannot be longer than 1000 characters")]
+    public string Description { get; set; }
 
-        [Display(Name = "Owner")]
-        public string LandlordName { get; set; }
+    public int NumberOfHouses { get; set; }
+}
 
-        // Properties for list view
-        public IEnumerable<PropertyViewModel> Properties { get; set; }
-        public string StatusMessage { get; set; }
+public class PropertyListViewModel
+{
+    public List<PropertyViewModel> Properties { get; set; }
+    public PropertyViewModel NewProperty { get; set; }
+}
 
-        // Constructor to initialize the collection
-        public PropertyViewModel()
-        {
-            Properties = new List<PropertyViewModel>();
-        }
-    }
 }

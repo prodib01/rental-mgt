@@ -53,7 +53,7 @@ namespace RentalManagementSystem.Controllers
                 .ToListAsync();
 
             var properties = await _context.Properties
-                .Where(p => p.UserId == userId && !p.IsDeleted)
+                .Where(p => p.UserId == userId)
                 .Select(p => new SelectListItem
                 {
                     Value = p.Id.ToString(),
@@ -82,7 +82,7 @@ namespace RentalManagementSystem.Controllers
                 var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
 
                 var property = await _context.Properties
-                    .Where(p => p.UserId == userId && !p.IsDeleted)
+                    .Where(p => p.UserId == userId)
                     .FirstOrDefaultAsync(p => p.Id == houseDto.PropertyId);
 
                 if (property == null)

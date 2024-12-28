@@ -32,7 +32,7 @@ namespace RentalManagementSystem.Services
             // Get all properties for the landlord
             var properties = await _context.Properties
                 .Include(p => p.Houses)
-                .Where(p => p.UserId == int.Parse(userId) && !p.IsDeleted)
+                .Where(p => p.UserId == int.Parse(userId))
                 .ToListAsync();
 
             int totalProperties = properties.Count;
