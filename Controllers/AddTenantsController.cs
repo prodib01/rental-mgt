@@ -8,11 +8,12 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace RentalManagementSystem.Controllers
 {
+    [Authorize]
     [Route("Landlord/Tenants")]
-    // [Authorize(Roles = "Landlord")]
     public class AddTenantsController : Controller
     {
         private readonly RentalManagementContext _context;
@@ -25,39 +26,54 @@ namespace RentalManagementSystem.Controllers
         }
 
         // GET: Tenant Management
-        [HttpGet]
-        [Route("")]
-        public async Task<IActionResult> Tenants()
+[HttpGet]
+[Route("")]
+public async Task<IActionResult> Tenants()
+{
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!int.TryParse(userIdStr, out var userId))
+    {
+        return Unauthorized("Invalid User ID");
+    }
+
+    // Get tenants from houses that belong to properties owned by the logged-in user
+    var tenants = await _context.Users
+        .Where(u => u.Role == "Tenant" && 
+                    u.House != null && 
+                    u.House.Property != null && 
+                    u.House.Property.UserId == userId)
+        .Select(u => new TenantViewModel
         {
-            var tenants = await _context.Users
-                .Where(u => u.Role == "Tenant")
-                .Select(u => new TenantViewModel
-                {
-                    Id = u.Id,
-                    FullName = u.FullName,
-                    Email = u.Email,
-                    PhoneNumber = u.PhoneNumber,
-                    HouseNumber = u.House != null ? u.House.HouseNumber : "Unassigned",
-                    LastLoginDate = u.LastLoginDate
-                }).ToListAsync();
+            Id = u.Id,
+            FullName = u.FullName,
+            Email = u.Email,
+            PhoneNumber = u.PhoneNumber,
+            HouseNumber = u.House.HouseNumber,
+            LastLoginDate = u.LastLoginDate
+        })
+        .ToListAsync();
 
-            var availableHouses = await _context.Houses
-                .Where(h => h.Tenant == null && !h.IsOccupied)
-                .Select(h => new SelectListItem
-                {
-                    Value = h.HouseNumber,
-                    Text = h.HouseNumber
-                }).ToListAsync();
+    // Get available houses from properties owned by the logged-in user
+    var availableHouses = await _context.Houses
+        .Where(h => h.Property.UserId == userId && 
+                    h.Tenant == null && 
+                    !h.IsOccupied)
+        .Select(h => new SelectListItem
+        {
+            Value = h.HouseNumber,
+            Text = h.HouseNumber
+        })
+        .ToListAsync();
 
-            var model = new TenantListViewModel
-            {
-                Tenants = tenants,
-                NewTenant = new AddTenantViewModel(),
-                AvailableHouses = availableHouses
-            };
+    var model = new TenantListViewModel
+    {
+        Tenants = tenants,
+        NewTenant = new AddTenantViewModel(),
+        AvailableHouses = availableHouses
+    };
 
-            return View("~/Views/Landlord/Tenants.cshtml", model);
-        }
+    return View("~/Views/Landlord/Tenants.cshtml", model);
+}
 
         // POST: Add Tenant
         [HttpPost]
@@ -115,6 +131,10 @@ namespace RentalManagementSystem.Controllers
                     };
 
                     _context.Users.Add(tenant);
+
+                    house.IsOccupied = true;
+                    _context.Houses.Update(house);
+                    
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
