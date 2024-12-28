@@ -18,11 +18,9 @@ public interface IAuthService
     Task<bool> VerifyPasswordAsync(User user, string password);
     Task<string> GenerateJwtTokenAsync(string email, string role);
     Task<AuthResponse> GenerateAuthTokensAsync(User user);
-
     Task<AuthResponse> ValidateAndGenerateTokensAsync(string refreshToken);
-
-
     Task<(User user, string errorMessage)> ValidateLoginAsync(string email, string password);
+    Task<bool> LogoutUserAsync(string email);
 }
 
 public class AuthService : IAuthService
@@ -203,6 +201,31 @@ public class AuthService : IAuthService
         }
 
         return await GenerateAuthTokensAsync(user);
+    }
+
+    public async Task<bool> LogoutUserAsync(string email)
+    {
+        try
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user != null)
+            {
+                // Clear refresh token data
+                user.RefreshToken = null;
+                user.RefreshTokenExpiryTime = DateTime.MinValue;
+                
+                // Update last logout time if you want to track it
+                user.LastLoginDate = DateTime.UtcNow;
+                
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private bool IsPasswordValid(string password)

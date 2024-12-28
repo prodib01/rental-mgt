@@ -5,21 +5,32 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+
 
 public class AuthController : Controller
 {
     private readonly RentalManagementContext _context;
     private readonly IAuthService _authService;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(RentalManagementContext context, IAuthService authService)
+    public AuthController(RentalManagementContext context, IAuthService authService, ILogger<AuthController> logger)
     {
         _context = context;
         _authService = authService;
+        _logger = logger;
     }
 
-    // GET: /Auth/Login (For rendering the login form view)
+    // GET: /Auth/Login
     public IActionResult Login()
     {
+        // If user is already authenticated, redirect to appropriate dashboard
+        if (User.Identity.IsAuthenticated)
+        {
+            return RedirectToUserDashboard(User.FindFirst(ClaimTypes.Role)?.Value);
+        }
+
         var model = new LoginViewModel();
 
         if (TempData["SuccessMessage"] != null)
@@ -42,85 +53,32 @@ public class AuthController : Controller
         {
             foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
             {
-                Console.WriteLine($"ModelState Error: {error.ErrorMessage}");
+                _logger.LogError($"ModelState Error: {error.ErrorMessage}");
             }
-            ViewData["ErrorMessage"] = "Please correct the errors in the form.";
             return View(model);
         }
-
-        Console.WriteLine($"Attempting login for email: {model.Email}");
 
         var (user, errorMessage) = await _authService.ValidateLoginAsync(model.Email, model.Password);
 
         if (user == null)
         {
-            Console.WriteLine($"Login failed: {errorMessage}");
-            ModelState.AddModelError(string.Empty, errorMessage ?? "Invalid login attempt.");
+            ModelState.AddModelError(string.Empty, errorMessage);
+            _logger.LogWarning($"Login failed for email: {model.Email}. Reason: {errorMessage}");
             return View(model);
         }
 
-        Console.WriteLine("Login successful, generating tokens");
-        var tokenResponse = await _authService.GenerateAuthTokensAsync(user);
+        var authResponse = await _authService.GenerateAuthTokensAsync(user);
 
-        // Store the JWT in a secure cookie
-        Response.Cookies.Append("JWT", tokenResponse.Token, new CookieOptions
+        // Set tokens in cookies
+        Response.Cookies.Append("AccessToken", authResponse.Token, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Strict
+            SameSite = SameSiteMode.Strict,
+            Expires = authResponse.Expiration
         });
 
-        Console.WriteLine($"Redirecting user with role: {user.Role}");
-
-        // Optionally, store the user's role in session or claims for easier access
-        HttpContext.Session.SetString("UserRole", user.Role);
-        HttpContext.Session.SetString("UserId", user.Id.ToString());
-
-        var redirectAction = user.Role switch
-        {
-            "Landlord" => "Dashboard",
-            "Tenant" => "Dashboard",
-            _ => "Unauthorized"
-        };
-
-        return RedirectToAction(redirectAction, user.Role);
-    }
-
-    [HttpPost("login")]
-    public async Task<IActionResult> ApiLogin([FromBody] UserLoginDto loginDto)
-    {
-        var (user, errorMessage) = await _authService.ValidateLoginAsync(loginDto.Email, loginDto.Password);
-        if (user == null)
-        {
-            return Unauthorized(new { message = errorMessage });
-        }
-
-        var authTokens = await _authService.GenerateAuthTokensAsync(user);
-
-        var userDto = new UserDto
-        {
-            Email = user.Email,
-            Role = user.Role,
-            Token = authTokens.Token,
-            RefreshToken = authTokens.RefreshToken,
-            Expiration = authTokens.Expiration
-        };
-
-        return Ok(userDto);
-    }
-
-    [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken()
-    {
-        var refreshToken = Request.Cookies["X-Refresh-Token"];
-        if (string.IsNullOrEmpty(refreshToken))
-            return BadRequest("Refresh token is required.");
-
-        var authResponse = await _authService.ValidateAndGenerateTokensAsync(refreshToken);
-        if (authResponse == null)
-            return Unauthorized(new { message = "Invalid refresh token." });
-
-        Response.Cookies.Append("X-Refresh-Token", authResponse.RefreshToken, new CookieOptions
+        Response.Cookies.Append("RefreshToken", authResponse.RefreshToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
@@ -128,13 +86,74 @@ public class AuthController : Controller
             Expires = DateTime.UtcNow.AddDays(7)
         });
 
-        return Ok(authResponse);
+        _logger.LogInformation($"User {user.Email} logged in successfully with role: {user.Role}");
+        TempData["SuccessMessage"] = "Login successful!";
+        
+        // Redirect based on user role
+        return RedirectToUserDashboard(user.Role);
     }
 
-    [HttpPost("logout")]
-    public IActionResult Logout()
+[HttpPost]
+public async Task<IActionResult> Logout()
+{
+    try
     {
-        Response.Cookies.Delete("X-Refresh-Token");
-        return Ok(new { message = "Logged out successfully" });
+        // Get the current user's email from claims
+        var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        if (!string.IsNullOrEmpty(userEmail))
+        {
+            // Optionally, perform server-side token revocation if you store tokens
+            await _authService.LogoutUserAsync(userEmail);
+        }
+
+        // Clear client-side authentication cookies
+        Response.Cookies.Delete("AccessToken", new CookieOptions
+        {
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            HttpOnly = true
+        });
+
+        Response.Cookies.Delete("RefreshToken", new CookieOptions
+        {
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            HttpOnly = true
+        });
+
+        // Clear any additional session or custom cookies
+        Response.Cookies.Delete("Role");
+
+        // Clear session data
+        HttpContext.Session.Clear();
+
+        _logger.LogInformation($"User {userEmail} logged out successfully");
+        
+        TempData["SuccessMessage"] = "You have been successfully logged out.";
+        return RedirectToAction("Login");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError($"Error during logout: {ex.Message}");
+        TempData["ErrorMessage"] = "An error occurred during logout.";
+        return RedirectToAction("Login");
+    }
+}
+
+
+    private IActionResult RedirectToUserDashboard(string role)
+    {
+        return Redirect(GetDashboardUrl(role));
+    }
+
+    private string GetDashboardUrl(string role)
+    {
+        return role?.ToLower() switch
+        {
+            "landlord" => "/Landlord/Dashboard",
+            "tenant" => "/Tenant/Dashboard",
+            _ => "/"
+        };
     }
 }
