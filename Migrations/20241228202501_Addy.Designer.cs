@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace RentalManagementSystem.Migrations
 {
     [DbContext(typeof(RentalManagementContext))]
-    partial class RentalManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20241228202501_Addy")]
+    partial class Addy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,6 +69,9 @@ namespace RentalManagementSystem.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("HouseId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -80,6 +86,8 @@ namespace RentalManagementSystem.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseId");
 
                     b.HasIndex("TenantId");
 
@@ -237,6 +245,12 @@ namespace RentalManagementSystem.Migrations
 
             modelBuilder.Entity("Lease", b =>
                 {
+                    b.HasOne("House", "House")
+                        .WithMany("Leases")
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("User", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -246,6 +260,8 @@ namespace RentalManagementSystem.Migrations
                     b.HasOne("User", null)
                         .WithMany("Leases")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("House");
 
                     b.Navigation("Tenant");
                 });
@@ -288,6 +304,8 @@ namespace RentalManagementSystem.Migrations
 
             modelBuilder.Entity("House", b =>
                 {
+                    b.Navigation("Leases");
+
                     b.Navigation("Payments");
 
                     b.Navigation("Tenant");

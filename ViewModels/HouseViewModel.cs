@@ -34,6 +34,6 @@ namespace RentalManagementSystem.ViewModels
         public string HouseNumber { get; set; }
         public decimal Rent { get; set; }
         public int PropertyId { get; set; }
-        public string PropertyType { get; set; }  // Changed from PropertyName to PropertyType
+        public string PropertyType { get; set; }  
     }
 }

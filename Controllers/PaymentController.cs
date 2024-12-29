@@ -8,87 +8,84 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using System.Security.Claims;
 
 namespace RentalManagementSystem.Controllers
 {
-    [Route("Landlord/Payments")]
-    // [Authorize(Roles = "Landlord")]
-    public class PaymentController : Controller
-    {
-        private readonly RentalManagementContext _context;
+	[Authorize]
+	[Route("Landlord/Payments")]
+	public class PaymentController : Controller
+	{
+		private readonly RentalManagementContext _context;
 
-        public PaymentController(RentalManagementContext context)
-        {
-            _context = context;
-        }
+		public PaymentController(RentalManagementContext context)
+		{
+			_context = context;
+		}
 
-        [HttpGet]
-        [Route("")]
-        public async Task<IActionResult> Payment(int page = 1, int pageSize = 10)
-        {
-            var userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
-            var userRole = User.FindFirst("Role")?.Value;
+		[HttpGet]
+		[Route("")]
+		public async Task<IActionResult> Payment(int page = 1, int pageSize = 10)
+		{
+					var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (!int.TryParse(userIdStr, out var userId))
+		{
+			return Unauthorized("Invalid User ID.");
+		}
+				
+				var query = _context.Payments
+				.Where(p => p.House.Property.UserId == userId);
+			
 
-            IQueryable<Payment> query = _context.Payments;
+			var totalPayments = await query.CountAsync();
 
-            if (userRole == "Landlord")
-            {
-                // Filter payments related to the landlord's properties/houses
-                query = query.Where(p =>
-                    (p.House != null && p.House.Property.UserId == userId) ||
-                    (p.User != null && p.User.House != null && p.User.House.Property.UserId == userId)
-                );
-            }
+			var payments = await query
+				.Include(p => p.House)
+				.Include(p => p.User)
+				.Skip((page - 1) * pageSize)
+				.Take(pageSize)
+				.Select(p => new PaymentListItemViewModel
+				{
+					Id = p.Id,
+					Amount = p.Amount,
+					PaymentDate = p.PaymentDate,
+					PaymentMethod = p.PaymentMethod.ToString(), // Convert enum to string
+					PaymentStatus = p.PaymentStatus.ToString(), // Convert enum to string
+					PaymentReference = p.PaymentReference,
+					HouseId = p.HouseId,
+					UserId = p.UserId,
+					House = p.House,
+					User = p.User,
+				})
+				.ToListAsync();
 
-            var totalPayments = await query.CountAsync();
+			var houses = await _context.Houses
+				.Select(h => new SelectListItem
+				{
+					Value = h.Id.ToString(),
+					Text = h.HouseNumber
+				})
+				.ToListAsync();
 
-            var payments = await query
-                .Include(p => p.House)
-                .Include(p => p.User)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new PaymentListItemViewModel
-                {
-                    Id = p.Id,
-                    Amount = p.Amount,
-                    PaymentDate = p.PaymentDate,
-                    PaymentMethod = p.PaymentMethod.ToString(), // Convert enum to string
-                    PaymentStatus = p.PaymentStatus.ToString(), // Convert enum to string
-                    PaymentReference = p.PaymentReference,
-                    HouseId = p.HouseId,
-                    UserId = p.UserId,
-                    House = p.House,
-                    User = p.User,
-                })
-                .ToListAsync();
+			var users = await _context.Users
 
-            var houses = await _context.Houses
-                .Select(h => new SelectListItem
-                {
-                    Value = h.Id.ToString(),
-                    Text = h.HouseNumber
-                })
-                .ToListAsync();
+				.Select(u => new SelectListItem
+				{
+					Value = u.Id.ToString(),
+					Text = u.Email
+				})
+				.ToListAsync();
 
-            var users = await _context.Users
-
-                .Select(u => new SelectListItem
-                {
-                    Value = u.Id.ToString(),
-                    Text = u.Email
-                })
-                .ToListAsync();
-
-            var viewModel = new PaymentViewModel
-            {
-                Payments = payments,
-                Houses = houses,  // Use the `houses` variable here
-                Users = users,    // Use the `users` variable here
-                StatusMessage = totalPayments > 0 ? $"{totalPayments} payments found." : "No payments found."
-            };
+			var viewModel = new PaymentViewModel
+			{
+				Payments = payments,
+				Houses = houses,  // Use the `houses` variable here
+				Users = users,    // Use the `users` variable here
+				StatusMessage = totalPayments > 0 ? $"{totalPayments} payments found." : "No payments found."
+			};
 
 
-            return View("~/Views/Landlord/Payments.cshtml", viewModel);
-        }
-    }
+			return View("~/Views/Landlord/Payments.cshtml", viewModel);
+		}
+	}
 }

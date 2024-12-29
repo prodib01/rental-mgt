@@ -23,58 +23,58 @@ namespace RentalManagementSystem.Controllers
         }
 
         // GET: /Landlord/House
-    [HttpGet]
-    [Route("")]
-    public async Task<IActionResult> House(int page = 1, int pageSize = 10)
-    {
-        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(userIdStr, out var userId))
+        [HttpGet]
+        [Route("")]
+        public async Task<IActionResult> House(int page = 1, int pageSize = 10)
         {
-            return Unauthorized("Invalid User ID.");
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized("Invalid User ID.");
+            }
+
+            // Always filter by the logged-in landlord's properties
+            var query = _context.Houses
+                .Where(h => h.Property.UserId == userId);
+
+            var totalHouses = await query.CountAsync();
+
+            var houses = await query
+                .Include(h => h.Property)
+                .OrderBy(h => h.Property.Address)
+                .ThenBy(h => h.HouseNumber)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(h => new HouseListItemViewModel
+                {
+                    Id = h.Id,
+                    HouseNumber = h.HouseNumber,
+                    Rent = h.Rent,
+                    PropertyId = h.PropertyId,
+                    PropertyType = h.Property.Type
+                })
+                .ToListAsync();
+
+            // Only get properties owned by the current landlord
+            var properties = await _context.Properties
+                .Where(p => p.UserId == userId)
+                .OrderBy(p => p.Address)
+                .Select(p => new SelectListItem
+                {
+                    Value = p.Id.ToString(),
+                    Text = $"{p.Type} - {p.Address}"
+                })
+                .ToListAsync();
+
+            var viewModel = new HouseViewModel
+            {
+                Houses = houses,
+                Properties = properties,
+                StatusMessage = totalHouses > 0 ? $"Showing {houses.Count} of {totalHouses} houses." : "No houses found."
+            };
+
+            return View("~/Views/Landlord/House.cshtml", viewModel);
         }
-
-        // Always filter by the logged-in landlord's properties
-        var query = _context.Houses
-            .Where(h => h.Property.UserId == userId);
-
-        var totalHouses = await query.CountAsync();
-
-        var houses = await query
-            .Include(h => h.Property)
-            .OrderBy(h => h.Property.Address)
-            .ThenBy(h => h.HouseNumber)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(h => new HouseListItemViewModel
-            {
-                Id = h.Id,
-                HouseNumber = h.HouseNumber,
-                Rent = h.Rent,
-                PropertyId = h.PropertyId,
-                PropertyType = h.Property.Type
-            })
-            .ToListAsync();
-
-        // Only get properties owned by the current landlord
-        var properties = await _context.Properties
-            .Where(p => p.UserId == userId)
-            .OrderBy(p => p.Address)
-            .Select(p => new SelectListItem
-            {
-                Value = p.Id.ToString(),
-                Text = $"{p.Type} - {p.Address}"
-            })
-            .ToListAsync();
-
-        var viewModel = new HouseViewModel
-        {
-            Houses = houses,
-            Properties = properties,
-            StatusMessage = totalHouses > 0 ? $"Showing {houses.Count} of {totalHouses} houses." : "No houses found."
-        };
-
-        return View("~/Views/Landlord/House.cshtml", viewModel);
-    }
 
         // POST: /Landlord/House/Add
         [HttpPost]
@@ -84,11 +84,11 @@ namespace RentalManagementSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (!int.TryParse(userIdStr, out var userId))
-    {
-        return Unauthorized("Invalid User ID.");
-    }
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdStr, out var userId))
+                {
+                    return Unauthorized("Invalid User ID.");
+                }
 
                 var property = await _context.Properties
                     .Where(p => p.UserId == userId)
@@ -102,7 +102,7 @@ namespace RentalManagementSystem.Controllers
                 var house = new House
                 {
                     PropertyId = houseDto.PropertyId,
-                    Rent = houseDto.Rent // Add this line
+                    Rent = houseDto.Rent 
                 };
 
                 _context.Add(house);
@@ -115,80 +115,80 @@ namespace RentalManagementSystem.Controllers
         }
 
         // POST: /Landlord/House/Edit/5
- // POST: /Landlord/House/Edit/5
-[HttpPost]
-[Route("Edit/{id}")]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Edit(int id, [Bind("HouseNumber, PropertyId, Rent")] HouseDto houseDto)
-{
-    if (!ModelState.IsValid)
-    {
-        return RedirectToAction(nameof(House));
-    }
-
-    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (!int.TryParse(userIdStr, out var userId))
-    {
-        return Unauthorized("Invalid User ID.");
-    }
-
-    // Get the house with its property information
-    var house = await _context.Houses
-        .Include(h => h.Property)
-        .FirstOrDefaultAsync(h => h.Id == id);
-
-    if (house == null)
-    {
-        return NotFound();
-    }
-
-    // Check if the house belongs to a property owned by the current user
-    if (house.Property.UserId != userId)
-    {
-        return Forbid();
-    }
-
-    // Verify the new property (if changed) belongs to the current user
-    if (house.PropertyId != houseDto.PropertyId)
-    {
-        var newProperty = await _context.Properties
-            .FirstOrDefaultAsync(p => p.Id == houseDto.PropertyId && p.UserId == userId);
-
-        if (newProperty == null)
+        // POST: /Landlord/House/Edit/5
+        [HttpPost]
+        [Route("Edit/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("HouseNumber, PropertyId, Rent")] HouseDto houseDto)
         {
-            return Forbid();
-        }
-    }
+            if (!ModelState.IsValid)
+            {
+                return RedirectToAction(nameof(House));
+            }
 
-    // Update the house properties
-    house.HouseNumber = houseDto.HouseNumber;
-    house.PropertyId = houseDto.PropertyId;
-    house.Rent = houseDto.Rent;
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized("Invalid User ID.");
+            }
 
-    try
-    {
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(House));
-    }
-    catch (DbUpdateConcurrencyException)
-    {
-        if (!HouseExists(id))
-        {
-            return NotFound();
+            // Get the house with its property information
+            var house = await _context.Houses
+                .Include(h => h.Property)
+                .FirstOrDefaultAsync(h => h.Id == id);
+
+            if (house == null)
+            {
+                return NotFound();
+            }
+
+            // Check if the house belongs to a property owned by the current user
+            if (house.Property.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            // Verify the new property (if changed) belongs to the current user
+            if (house.PropertyId != houseDto.PropertyId)
+            {
+                var newProperty = await _context.Properties
+                    .FirstOrDefaultAsync(p => p.Id == houseDto.PropertyId && p.UserId == userId);
+
+                if (newProperty == null)
+                {
+                    return Forbid();
+                }
+            }
+
+            // Update the house properties
+            house.HouseNumber = houseDto.HouseNumber;
+            house.PropertyId = houseDto.PropertyId;
+            house.Rent = houseDto.Rent;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(House));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!HouseExists(id))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
         }
-        throw;
-    }
-}
 
         // GET: /Landlord/House/Delete/5
         [Route("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (!int.TryParse(userIdStr, out var userId))
-    {
-        return Unauthorized("Invalid User ID.");
-    }
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized("Invalid User ID.");
+            }
 
             var house = await _context.Houses.FindAsync(id);
             if (house == null)
