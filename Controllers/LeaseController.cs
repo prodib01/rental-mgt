@@ -120,8 +120,16 @@ namespace RentalManagementSystem.Controllers
 		[ValidateAntiForgeryToken]
 		public async Task<IActionResult> Edit(int id, [Bind("Id,TenantId,StartDate,EndDate")] LeaseDto leaseDto)
 		{
+			// Add debug check
+			Console.WriteLine($"Received Edit request for lease {id}");
+			Console.WriteLine($"DTO values - TenantId: {leaseDto.TenantId}, StartDate: {leaseDto.StartDate}, EndDate: {leaseDto.EndDate}");
+
 			if (!ModelState.IsValid)
 			{
+				var errors = string.Join("; ", ModelState.Values
+					.SelectMany(x => x.Errors)
+					.Select(x => x.ErrorMessage));
+				Console.WriteLine($"Model validation failed: {errors}");
 				return RedirectToAction(nameof(Lease));
 			}
 
@@ -139,13 +147,12 @@ namespace RentalManagementSystem.Controllers
 
 			if (lease == null)
 			{
+				Console.WriteLine($"Lease {id} not found");
 				return NotFound();
 			}
 
-			if (lease.Tenant.House.Property.UserId != userId)
-			{
-				return Forbid();
-			}
+			// Log current values before update
+			Console.WriteLine($"Current lease values - TenantId: {lease.TenantId}, StartDate: {lease.StartDate}, EndDate: {lease.EndDate}");
 
 			// Update lease properties
 			lease.TenantId = leaseDto.TenantId;
@@ -153,18 +160,28 @@ namespace RentalManagementSystem.Controllers
 			lease.EndDate = leaseDto.EndDate;
 			lease.UpdatedAt = DateTime.UtcNow;
 
+			// Log new values after update
+			Console.WriteLine($"Updated lease values - TenantId: {lease.TenantId}, StartDate: {lease.StartDate}, EndDate: {lease.EndDate}");
+
 			try
 			{
-				_context.Update(lease);
-				await _context.SaveChangesAsync();
+				_context.Entry(lease).State = EntityState.Modified;
+				var changes = await _context.SaveChangesAsync();
+				Console.WriteLine($"SaveChanges completed. Number of entities modified: {changes}");
 				return RedirectToAction(nameof(Lease));
 			}
-			catch (DbUpdateConcurrencyException)
+			catch (DbUpdateConcurrencyException ex)
 			{
+				Console.WriteLine($"Concurrency error: {ex.Message}");
 				if (!LeaseExists(id))
 				{
 					return NotFound();
 				}
+				throw;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error updating lease: {ex.Message}");
 				throw;
 			}
 		}
