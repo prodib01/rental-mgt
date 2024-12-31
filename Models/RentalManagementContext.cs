@@ -18,6 +18,7 @@ public class RentalManagementContext : DbContext
 	public DbSet<User> Users { get; set; }
 	public DbSet<Payment> Payments { get; set; }
 	public DbSet<Lease> Leases { get; set; }
+	public DbSet<LeaseDocument> LeaseDocuments { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -119,44 +120,75 @@ public class RentalManagementContext : DbContext
 			.WithMany(u => u.Payments)
 			.HasForeignKey(p => p.UserId);
 		});
-		
-// Configure Lease entity
-modelBuilder.Entity<Lease>(entity =>
-{
-    entity.ToTable("Leases");
 
-    // Configure Id as the primary key
-    entity.HasKey(e => e.Id);
+		// Configure Lease entity
+		modelBuilder.Entity<Lease>(entity =>
+		{
+			entity.ToTable("Leases");
 
-    // Configure TenantId as a required foreign key
-    entity.Property(e => e.TenantId)
-        .IsRequired();
+			// Configure Id as the primary key
+			entity.HasKey(e => e.Id);
 
-    // Configure relationship between Lease and User
-    entity.HasOne(e => e.Tenant)
-        .WithMany() // Assuming User doesn't have a navigation property for leases
-        .HasForeignKey(e => e.TenantId)
-        .OnDelete(DeleteBehavior.Cascade);
+			// Configure TenantId as a required foreign key
+			entity.Property(e => e.TenantId)
+				.IsRequired();
 
-    // Configure StartDate
-    entity.Property(e => e.StartDate)
-        .IsRequired();
+			// Configure relationship between Lease and User
+			entity.HasOne(e => e.Tenant)
+				.WithMany() // Assuming User doesn't have a navigation property for leases
+				.HasForeignKey(e => e.TenantId)
+				.OnDelete(DeleteBehavior.Cascade);
 
-    // Configure EndDate
-    entity.Property(e => e.EndDate)
-        .IsRequired();
+			// Configure StartDate
+			entity.Property(e => e.StartDate)
+				.IsRequired();
 
-    // Configure CreatedAt
-    entity.Property(e => e.CreatedAt)
-        .HasDefaultValueSql("GETUTCDATE()")
-        .ValueGeneratedOnAdd();
+			// Configure EndDate
+			entity.Property(e => e.EndDate)
+				.IsRequired();
 
-    // Configure UpdatedAt
-    entity.Property(e => e.UpdatedAt)
-        .ValueGeneratedOnUpdate();
+			// Configure CreatedAt
+			entity.Property(e => e.CreatedAt)
+				.HasDefaultValueSql("GETUTCDATE()")
+				.ValueGeneratedOnAdd();
 
-    // Add additional constraints or indexes if necessary
-});
+			// Configure UpdatedAt
+			entity.Property(e => e.UpdatedAt)
+				.ValueGeneratedOnUpdate();
+
+			// Add additional constraints or indexes if necessary
+		});
+
+		modelBuilder.Entity<LeaseDocument>(entity =>
+
+		{
+			entity.ToTable("LeaseDocuments");
+
+			entity.HasKey(e => e.Id);
+
+			entity.Property(e => e.LeaseId)
+			.IsRequired();
+
+			entity.HasOne(e => e.Lease)
+			.WithMany()
+			.HasForeignKey(e => e.LeaseId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+			entity.Property(e => e.DocumentPath)
+				.IsRequired()
+				.HasMaxLength(255);
+
+			entity.Property(e => e.DocumentName)
+				.IsRequired()
+				.HasMaxLength(100);
+
+			entity.Property(e => e.GeneratedAt)
+				.IsRequired();
+
+			entity.Property(e => e.Version)
+				.IsRequired()
+				.HasMaxLength(50);
+		});
 
 
 	}

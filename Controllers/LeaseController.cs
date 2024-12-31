@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using RentalManagementSystem.ViewModels;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using RentalManagementSystem.Services;
 
 
 namespace RentalManagementSystem.Controllers
@@ -17,10 +18,17 @@ namespace RentalManagementSystem.Controllers
 	public class LeaseController : Controller
 	{
 		private readonly RentalManagementContext _context;
+		private readonly ILeaseDocumentService _leaseDocumentService;
+		private readonly IWebHostEnvironment _webHostEnvironment;
 
-		public LeaseController(RentalManagementContext context)
+		public LeaseController(
+			RentalManagementContext context,
+			ILeaseDocumentService leaseDocumentService,
+			IWebHostEnvironment webHostEnvironment)
 		{
 			_context = context;
+			_leaseDocumentService = leaseDocumentService;
+			_webHostEnvironment = webHostEnvironment;
 		}
 
 		// GET: /Landlord/Lease
@@ -108,6 +116,12 @@ namespace RentalManagementSystem.Controllers
 				_context.Add(lease);
 				await _context.SaveChangesAsync();
 
+				// Generate lease document
+				await _leaseDocumentService.GenerateAndSaveDocument(
+					lease,
+					_webHostEnvironment.WebRootPath
+				);
+
 				return RedirectToAction(nameof(Lease));
 			}
 
@@ -168,6 +182,13 @@ namespace RentalManagementSystem.Controllers
 				_context.Entry(lease).State = EntityState.Modified;
 				var changes = await _context.SaveChangesAsync();
 				Console.WriteLine($"SaveChanges completed. Number of entities modified: {changes}");
+
+				// Generate new version of lease document
+				await _leaseDocumentService.GenerateAndSaveDocument(
+					lease,
+					_webHostEnvironment.WebRootPath
+				);
+
 				return RedirectToAction(nameof(Lease));
 			}
 			catch (DbUpdateConcurrencyException ex)
@@ -218,6 +239,29 @@ namespace RentalManagementSystem.Controllers
 		private bool LeaseExists(int id)
 		{
 			return _context.Leases.Any(e => e.Id == id);
+		}
+		
+		[HttpGet]
+		[Route("Document/{leaseId}")]
+		public async Task<IActionResult> DownloadDocument(int leaseId)
+		
+		{
+			var document = await _context.LeaseDocuments
+			.Where(d => d.LeaseId == leaseId)
+			.OrderByDescending(d => d.GeneratedAt)
+			.FirstOrDefaultAsync();
+			
+			if (document == null)
+			
+			{
+				return NotFound();
+			}
+
+			var filePath = document.DocumentPath;
+			var fileName = document.DocumentName;
+
+			var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+			return File(fileBytes, "application/pdf", fileName);
 		}
 	}
 }

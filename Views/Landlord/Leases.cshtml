@@ -64,6 +64,10 @@
                                             <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#delete-lease-modal-@lease.Id">
                                                 <i class="fas fa-trash"></i>
                                             </button>
+                                            <a href="@Url.Action("DownloadDocument", new { leaseId = lease.Id})"
+                                            class="btn btn-sm btn-info">
+                                            <i class="fas fa-file-download"></i>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
