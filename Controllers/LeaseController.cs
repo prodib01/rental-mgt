@@ -118,7 +118,7 @@ namespace RentalManagementSystem.Controllers
 		[HttpPost]
 		[Route("Edit/{id}")]
 		[ValidateAntiForgeryToken]
-		public async Task<IActionResult> Edit(int id, [Bind("Id,TenantId,StartDate,EndDate")] LeaseDto leaseDto)
+		public async Task<IActionResult> Edit(int id, [Bind("TenantId,StartDate,EndDate")] CreateLeaseDto leaseDto)
 		{
 			// Add debug check
 			Console.WriteLine($"Received Edit request for lease {id}");
