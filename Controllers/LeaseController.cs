@@ -134,16 +134,11 @@ namespace RentalManagementSystem.Controllers
 		[ValidateAntiForgeryToken]
 		public async Task<IActionResult> Edit(int id, [Bind("TenantId,StartDate,EndDate")] CreateLeaseDto leaseDto)
 		{
-			// Add debug check
-			Console.WriteLine($"Received Edit request for lease {id}");
-			Console.WriteLine($"DTO values - TenantId: {leaseDto.TenantId}, StartDate: {leaseDto.StartDate}, EndDate: {leaseDto.EndDate}");
-
 			if (!ModelState.IsValid)
 			{
 				var errors = string.Join("; ", ModelState.Values
 					.SelectMany(x => x.Errors)
 					.Select(x => x.ErrorMessage));
-				Console.WriteLine($"Model validation failed: {errors}");
 				return RedirectToAction(nameof(Lease));
 			}
 
@@ -161,51 +156,52 @@ namespace RentalManagementSystem.Controllers
 
 			if (lease == null)
 			{
-				Console.WriteLine($"Lease {id} not found");
 				return NotFound();
 			}
 
-			// Log current values before update
-			Console.WriteLine($"Current lease values - TenantId: {lease.TenantId}, StartDate: {lease.StartDate}, EndDate: {lease.EndDate}");
-
-			// Update lease properties
 			lease.TenantId = leaseDto.TenantId;
 			lease.StartDate = leaseDto.StartDate;
 			lease.EndDate = leaseDto.EndDate;
 			lease.UpdatedAt = DateTime.UtcNow;
 
-			// Log new values after update
-			Console.WriteLine($"Updated lease values - TenantId: {lease.TenantId}, StartDate: {lease.StartDate}, EndDate: {lease.EndDate}");
-
 			try
 			{
-				_context.Entry(lease).State = EntityState.Modified;
-				var changes = await _context.SaveChangesAsync();
-				Console.WriteLine($"SaveChanges completed. Number of entities modified: {changes}");
+				// Remove the existing lease document if it exists
+				var existingDocument = await _context.LeaseDocuments
+					.Where(d => d.LeaseId == lease.Id)
+					.OrderByDescending(d => d.GeneratedAt)
+					.FirstOrDefaultAsync();
 
-				// Generate new version of lease document
-				await _leaseDocumentService.GenerateAndSaveDocument(
-					lease,
-					_webHostEnvironment.WebRootPath
-				);
+				if (existingDocument != null)
+				{
+					var oldFilePath = existingDocument.DocumentPath;
+					if (System.IO.File.Exists(oldFilePath))
+					{
+						System.IO.File.Delete(oldFilePath); // Delete the old file
+					}
+
+					_context.LeaseDocuments.Remove(existingDocument); // Remove old document record
+				}
+
+				// Save the updated lease details
+				_context.Entry(lease).State = EntityState.Modified;
+				await _context.SaveChangesAsync();
+
+				// Generate and save the new document
+				await _leaseDocumentService.GenerateAndSaveDocument(lease, _webHostEnvironment.WebRootPath);
 
 				return RedirectToAction(nameof(Lease));
 			}
-			catch (DbUpdateConcurrencyException ex)
+			catch (DbUpdateConcurrencyException)
 			{
-				Console.WriteLine($"Concurrency error: {ex.Message}");
 				if (!LeaseExists(id))
 				{
 					return NotFound();
 				}
 				throw;
 			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"Error updating lease: {ex.Message}");
-				throw;
-			}
 		}
+
 		// GET: /Landlord/Lease/Delete/5
 		[Route("Delete/{id}")]
 		public async Task<IActionResult> Delete(int id)
@@ -240,19 +236,19 @@ namespace RentalManagementSystem.Controllers
 		{
 			return _context.Leases.Any(e => e.Id == id);
 		}
-		
+
 		[HttpGet]
 		[Route("Document/{leaseId}")]
 		public async Task<IActionResult> DownloadDocument(int leaseId)
-		
+
 		{
 			var document = await _context.LeaseDocuments
 			.Where(d => d.LeaseId == leaseId)
 			.OrderByDescending(d => d.GeneratedAt)
 			.FirstOrDefaultAsync();
-			
+
 			if (document == null)
-			
+
 			{
 				return NotFound();
 			}
