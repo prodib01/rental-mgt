@@ -19,6 +19,8 @@ public class RentalManagementContext : DbContext
 	public DbSet<Payment> Payments { get; set; }
 	public DbSet<Lease> Leases { get; set; }
 	public DbSet<LeaseDocument> LeaseDocuments { get; set; }
+	public DbSet<Utility> Utilities { get; set; }
+	public DbSet<UtilityReading> UtilityReadings { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -190,6 +192,56 @@ public class RentalManagementContext : DbContext
 				.HasMaxLength(50);
 		});
 
+		modelBuilder.Entity<Utility>(entity =>
+			{
+				// Table name configuration (optional, as EF Core will infer the name)
+				entity.ToTable("Utilities");
+
+				// Property configurations
+				entity.Property(e => e.Name)
+					.IsRequired() // Name is required
+					.HasMaxLength(100); // Set a max length for the Name
+
+				// Cost is required (optional: adjust depending on your needs)
+				entity.Property(e => e.Cost)
+					.IsRequired();
+
+			});
+
+		// UtilityReading entity configuration
+		modelBuilder.Entity<UtilityReading>(entity =>
+		{
+			// Table name configuration (optional)
+			entity.ToTable("UtilityReadings");
+
+			// Property configurations
+			entity.Property(e => e.ReadingDate)
+				.IsRequired(); // Ensure the reading date is required
+
+			entity.Property(e => e.PrevReading)
+				.IsRequired(); // Previous reading is required
+
+			entity.Property(e => e.CurrentReading)
+				.IsRequired(); // Current reading is required
+
+			entity.Property(e => e.Consumption)
+				.IsRequired(); // Consumption is required
+
+			entity.Property(e => e.TotalCost)
+				.IsRequired(); // Total cost is required
+
+			// UtilityId as a foreign key relationship
+			entity.HasOne(e => e.Utility)  // Each UtilityReading belongs to one Utility
+				.WithMany() // A Utility can have multiple readings
+				.HasForeignKey(e => e.UtilityId)
+				.OnDelete(DeleteBehavior.Cascade); // Delete UtilityReadings when Utility is deleted
+
+			// TenantId as a foreign key relationship
+			entity.HasOne(e => e.Tenant)  // Each Utility has one Tenant
+				.WithMany() // A Tenant can have multiple Utilities
+				.HasForeignKey(e => e.TenantId)
+				.OnDelete(DeleteBehavior.Cascade); // Delete Utilities when Tenant is deleted	
+		});
 
 	}
 

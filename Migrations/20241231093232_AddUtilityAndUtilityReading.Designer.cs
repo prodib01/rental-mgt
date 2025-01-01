@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace RentalManagementSystem.Migrations
 {
     [DbContext(typeof(RentalManagementContext))]
-    partial class RentalManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20241231093232_AddUtilityAndUtilityReading")]
+    partial class AddUtilityAndUtilityReading
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -215,14 +218,22 @@ namespace RentalManagementSystem.Migrations
                     b.Property<int>("Cost")
                         .HasColumnType("int");
 
+                    b.Property<string>("MeterNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Utilities", (string)null);
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Utilities");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.UtilityReading", b =>
@@ -245,9 +256,6 @@ namespace RentalManagementSystem.Migrations
                     b.Property<DateTime>("ReadingDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
                     b.Property<int>("TotalCost")
                         .HasColumnType("int");
 
@@ -256,11 +264,9 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.HasIndex("UtilityId");
 
-                    b.ToTable("UtilityReadings", (string)null);
+                    b.ToTable("UtilityReadings");
                 });
 
             modelBuilder.Entity("User", b =>
@@ -382,21 +388,24 @@ namespace RentalManagementSystem.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RentalManagementSystem.Models.UtilityReading", b =>
+            modelBuilder.Entity("RentalManagementSystem.Models.Utility", b =>
                 {
                     b.HasOne("User", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RentalManagementSystem.Models.Utility", "Utility")
-                        .WithMany()
-                        .HasForeignKey("UtilityId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("RentalManagementSystem.Models.UtilityReading", b =>
+                {
+                    b.HasOne("RentalManagementSystem.Models.Utility", "Utility")
+                        .WithMany()
+                        .HasForeignKey("UtilityId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.Navigation("Utility");
                 });

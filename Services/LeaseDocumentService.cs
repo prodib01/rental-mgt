@@ -50,7 +50,7 @@ namespace RentalManagementSystem.Services
 
 			// Generate unique filename
 			string version = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-			string fileName = $"lease-agreement-for-{lease.Tenant.FullName}-v{version}.pdf";
+			string fileName = $"lease-agreement-for-{lease.Tenant.FullName}";
 			string filePath = Path.Combine(documentDirectory, fileName);
 
 			//Generate PDF

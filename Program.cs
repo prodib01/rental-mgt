@@ -20,6 +20,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<RentalManagementContext>();
 builder.Services.AddScoped<ILandlordDashboardService, LandlordDashboardService>();
 builder.Services.AddScoped<ILeaseDocumentService, LeaseDocumentService>();
+builder.Services.AddScoped<IUtilityService, UtilityService>();
 
 // Add session support
 builder.Services.AddSession(options =>

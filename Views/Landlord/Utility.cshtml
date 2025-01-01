@@ -1,0 +1,326 @@
+@model List<RentalManagementSystem.DTOs.UtilityDto>
+
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="text-primary mb-0">
+                    <i class="fas fa-bolt mr-2"></i>Utility Management
+                </h2>
+                <button class="btn btn-success rounded-pill" data-toggle="modal" data-target="#add-utility-modal">
+                    <i class="fas fa-plus-circle mr-2"></i>Add New Utility
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-0">
+            <div class="d-flex flex-wrap gap-2 p-3">
+                @foreach (var utility in Model)
+                {
+                    <button class="btn btn-outline-primary mb-2" onclick="loadReadings(@utility.Id)">
+                        <i class="fas fa-bolt mr-2"></i>@utility.Name (@utility.Cost.ToString("C") per unit)
+                        <div class="btn-group ml-2">
+                            <button class="btn btn-sm btn-warning" data-toggle="modal" 
+                                    data-target="#edit-utility-modal-@utility.Id">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" data-toggle="modal" 
+                                    data-target="#delete-utility-modal-@utility.Id">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </button>
+                }
+            </div>
+
+            <div id="readingsSection" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                    <h4 class="mb-0">Utility Readings</h4>
+                    <button class="btn btn-success rounded-pill" data-toggle="modal" data-target="#add-reading-modal">
+                        <i class="fas fa-plus-circle mr-2"></i>Add New Reading
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover" style="min-width: 1000px;">
+                        <thead style="background-color: #f8f9fa;">
+                            <tr>
+                                <th style="color: #6c757d;">Date</th>
+                                <th style="color: #6c757d;">Tenant</th>
+                                <th style="color: #6c757d;">House Number</th>
+                                <th style="color: #6c757d;">Previous Reading</th>
+                                <th style="color: #6c757d;">Current Reading</th>
+                                <th style="color: #6c757d;">Consumption</th>
+                                <th style="color: #6c757d;">Total Cost</th>
+                                <th style="color: #6c757d;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="readingsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding a new utility -->
+    <div class="modal fade" id="add-utility-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title font-weight-bold">
+                        <i class="fas fa-plus-circle mr-2"></i>Add New Utility
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <form asp-action="Add" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">Name</label>
+                                <input type="text" name="Name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">Cost per Unit</label>
+                                <input type="number" name="Cost" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Utility</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding a new reading -->
+    <div class="modal fade" id="add-reading-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title font-weight-bold">
+                        <i class="fas fa-plus-circle mr-2"></i>Add New Reading
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <form id="readingForm">
+                        <input type="hidden" id="currentUtilityId" name="UtilityId">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">Tenant</label>
+                                <select name="TenantId" class="form-control" required>
+                                    @foreach (var tenant in ViewBag.Tenants)
+                                    {
+                                        <option value="@tenant.Value">@tenant.Text</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">Previous Reading</label>
+                                <input type="number" name="PrevReading" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">Current Reading</label>
+                                <input type="number" name="CurrentReading" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveReading()">Add Reading</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit and Delete modals for each utility -->
+    @foreach (var utility in Model)
+    {
+        <div class="modal fade" id="edit-utility-modal-@utility.Id" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title font-weight-bold">
+                            <i class="fas fa-edit mr-2"></i>Edit Utility
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <form asp-action="Edit" asp-route-id="@utility.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold">Name</label>
+                                    <input type="text" name="Name" value="@utility.Name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold">Cost per Unit</label>
+                                    <input type="number" name="Cost" value="@utility.Cost" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-warning">Update Utility</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="delete-utility-modal-@utility.Id" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title font-weight-bold">
+                            <i class="fas fa-trash mr-2"></i>Delete Utility
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <p class="lead mb-4 text-muted">
+                            Are you sure you want to delete @utility.Name?
+                        </p>
+                        <form asp-action="Delete" asp-route-id="@utility.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger">Delete Utility</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <script>
+        let currentUtilityId = null;
+
+        function loadReadings(utilityId) {
+            currentUtilityId = utilityId;
+            document.getElementById('currentUtilityId').value = utilityId;
+            
+            fetch(`/Landlord/Utility/Readings/${utilityId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('readingsTableBody');
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(reading => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${new Date(reading.readingDate).toLocaleDateString()}</td>
+                                <td>${reading.tenantName}</td>
+                                <td>${reading.houseNumber}</td>
+                                <td>${reading.prevReading}</td>
+                                <td>${reading.currentReading}</td>
+                                <td>${reading.consumption}</td>
+                                <td>${reading.totalCost.toLocaleString('en-US', { 
+                                    style: 'currency', 
+                                    currency: 'USD' 
+                                })}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-warning" data-toggle="modal" 
+                                                data-target="#edit-reading-modal-${reading.id}"
+                                                style="margin-right: 5px;">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteReading(${reading.id})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    document.getElementById('readingsSection').style.display = 'block';
+                });
+        }
+
+        function saveReading() {
+            const form = document.getElementById('readingForm');
+            const formData = new FormData(form);
+            const utilityId = currentUtilityId;
+            
+            const data = {
+                utilityId: utilityId,
+                tenantId: formData.get('TenantId'),
+                prevReading: parseInt(formData.get('PrevReading')),
+                currentReading: parseInt(formData.get('CurrentReading'))
+            };
+            
+            fetch(`/Landlord/Utility/Reading/Add/${utilityId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    $('#add-reading-modal').modal('hide');
+                    loadReadings(utilityId);
+                    form.reset();
+                }
+            });
+        }
+
+        function deleteReading(id) {
+            if (confirm('Are you sure you want to delete this reading?')) {
+                fetch(`/Landlord/Utility/Reading/Delete/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadReadings(currentUtilityId);
+                    }
+                });
+            }
+        }
+
+        // Form validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const readingForm = document.getElementById('readingForm');
+            readingForm.addEventListener('submit', function(e) {
+                const currentReading = parseInt(this.querySelector('[name="CurrentReading"]').value);
+                const prevReading = parseInt(this.querySelector('[name="PrevReading"]').value);
+                
+                if (currentReading <= prevReading) {
+                    e.preventDefault();
+                    alert('Current reading must be greater than previous reading');
+                    return false;
+                }
+            });
+
+            // Auto-populate previous reading when selecting tenant
+            const tenantSelect = document.querySelector('[name="TenantId"]');
+            tenantSelect.addEventListener('change', function() {
+                if (currentUtilityId && this.value) {
+                    fetch(`/Landlord/Utility/LastReading/${currentUtilityId}/${this.value}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.currentReading) {
+                                document.querySelector('[name="PrevReading"]').value = data.currentReading;
+                            } else {
+                                document.querySelector('[name="PrevReading"]').value = '';
+                            }
+                        });
+                }
+            });
+        });
+    </script>
+}
