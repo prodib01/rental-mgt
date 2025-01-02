@@ -226,6 +226,9 @@ public class RentalManagementContext : DbContext
 
 			entity.Property(e => e.Consumption)
 				.IsRequired(); // Consumption is required
+				
+			entity.Property(e => e.IsPaid)
+				.IsRequired(); // IsPaid is required	
 
 			entity.Property(e => e.TotalCost)
 				.IsRequired(); // Total cost is required

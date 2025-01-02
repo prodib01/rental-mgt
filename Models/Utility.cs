@@ -4,6 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using RentalManagementSystem.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 
 
 namespace RentalManagementSystem.Models
@@ -31,5 +34,14 @@ namespace RentalManagementSystem.Models
 		public int CurrentReading { get; set; }
 		public int Consumption { get; set; }
 		public int TotalCost { get; set; }
+		public bool IsPaid { get; set; }
+		
+			public class UniqueUtilityTenantConstraint : IEntityTypeConfiguration<UtilityReading>
+	{
+		public void Configure(EntityTypeBuilder<UtilityReading> builder)
+		{
+			builder.HasIndex(u => new { u.UtilityId, u.TenantId }).IsUnique();
+		}
+	}
 	}
 }

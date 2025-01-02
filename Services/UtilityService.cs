@@ -47,23 +47,25 @@ namespace RentalManagementSystem.Services
 				.FirstOrDefaultAsync(u => u.Id == id);
 		}
 
-		public async Task<List<UtilityReadingDto>> GetReadingsAsync(int utilityId)
-		{
-			return await _context.UtilityReadings
-				.Where(r => r.UtilityId == utilityId)
-				.Include(r => r.Tenant)
-				.OrderByDescending(r => r.ReadingDate)
-				.Select(r => new UtilityReadingDto
-				{
-					TenantName = r.Tenant.FullName,
-					HouseNumber = r.Tenant.House.HouseNumber,
-					ReadingDate = r.ReadingDate,
-					PrevReading = r.PrevReading,
-					CurrentReading = r.CurrentReading,
-					Consumption = r.Consumption,
-					TotalCost = r.TotalCost
-				}).ToListAsync();
-		}
+public async Task<List<UtilityReadingDto>> GetReadingsAsync(int utilityId)
+{
+    return await _context.UtilityReadings
+        .Where(r => r.UtilityId == utilityId)
+        .Include(r => r.Tenant)
+            .ThenInclude(t => t.House)
+        .OrderByDescending(r => r.ReadingDate)
+        .Select(r => new UtilityReadingDto
+        {
+            Id = r.Id,  // Make sure this is included
+            TenantName = r.Tenant.FullName,
+            HouseNumber = r.Tenant.House.HouseNumber,
+            ReadingDate = r.ReadingDate,
+            PrevReading = r.PrevReading,
+            CurrentReading = r.CurrentReading,
+            Consumption = r.Consumption,
+            TotalCost = r.TotalCost
+        }).ToListAsync();
+}
 
 		public async Task<UtilityReading> GetLastReadingAsync(int utilityId, int tenantId)
 		{
@@ -85,25 +87,34 @@ namespace RentalManagementSystem.Services
 			await _context.SaveChangesAsync();
 		}
 
-		public async Task AddReadingAsync(int utilityId, CreateUtilityReadingDto dto)
-		{
-			var utility = await GetUtilityByIdAsync(utilityId);
-			int consumption = dto.CurrentReading - dto.PrevReading;
+    public async Task AddReadingAsync(int utilityId, CreateUtilityReadingDto dto)
+    {
+        // Check if reading already exists for this tenant and utility
+        var existingReading = await _context.UtilityReadings
+            .FirstOrDefaultAsync(r => r.UtilityId == utilityId && r.TenantId == dto.TenantId);
 
-			var reading = new UtilityReading
-			{
-				UtilityId = utilityId,
-				TenantId = dto.TenantId,
-				ReadingDate = DateTime.Now,
-				PrevReading = dto.PrevReading,
-				CurrentReading = dto.CurrentReading,
-				Consumption = consumption,
-				TotalCost = consumption * utility.Cost
-			};
+        if (existingReading != null)
+        {
+            throw new InvalidOperationException("A reading already exists for this tenant");
+        }
 
-			_context.UtilityReadings.Add(reading);
-			await _context.SaveChangesAsync();
-		}
+        var utility = await GetUtilityByIdAsync(utilityId);
+        int consumption = dto.CurrentReading - dto.PrevReading;
+
+        var reading = new UtilityReading
+        {
+            UtilityId = utilityId,
+            TenantId = dto.TenantId,
+            ReadingDate = DateTime.Now,
+            PrevReading = dto.PrevReading,
+            CurrentReading = dto.CurrentReading,
+            Consumption = consumption,
+            TotalCost = consumption * utility.Cost
+        };
+
+        _context.UtilityReadings.Add(reading);
+        await _context.SaveChangesAsync();
+    }
 
 		public async Task<UtilityReading> GetReadingByIdAsync(int id)
 		{
@@ -113,20 +124,21 @@ namespace RentalManagementSystem.Services
 				.FirstOrDefaultAsync(r => r.Id == id);
 		}
 
-		public async Task UpdateReadingAsync(int id, CreateUtilityReadingDto dto)
-		{
-			var reading = await GetReadingByIdAsync(id);
-			if (reading == null) throw new KeyNotFoundException("Reading not found");
+    public async Task UpdateReadingAsync(int id, CreateUtilityReadingDto dto)
+    {
+        var reading = await GetReadingByIdAsync(id);
+        if (reading == null) throw new KeyNotFoundException("Reading not found");
 
-			int consumption = dto.CurrentReading - dto.PrevReading;
+        // Only update readings, not tenant
+        int consumption = dto.CurrentReading - dto.PrevReading;
 
-			reading.TenantId = dto.TenantId;
-			reading.PrevReading = dto.PrevReading;
-			reading.CurrentReading = dto.CurrentReading;
-			reading.Consumption = consumption;
-			reading.TotalCost = consumption * reading.Utility.Cost;
+        reading.PrevReading = dto.PrevReading;
+        reading.CurrentReading = dto.CurrentReading;
+        reading.Consumption = consumption;
+        reading.TotalCost = consumption * reading.Utility.Cost;
+        reading.ReadingDate = DateTime.Now;
 
-			await _context.SaveChangesAsync();
-		}
+        await _context.SaveChangesAsync();
+    }
 	}
 }

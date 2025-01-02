@@ -10,136 +10,189 @@ using RentalManagementSystem.Services;
 
 namespace RentalManagementSystem.Controllers
 {
-    [Authorize]
-    [Route("Landlord/Utility")]
-    public class UtilityController : Controller
-    {
-        private readonly IUtilityService _utilityService;
-        private readonly RentalManagementContext _context;
+	[Authorize]
+	[Route("Landlord/Utility")]
+	public class UtilityController : Controller
+	{
+		private readonly IUtilityService _utilityService;
+		private readonly RentalManagementContext _context;
 
-        public UtilityController(IUtilityService utilityService, RentalManagementContext context)
-        {
-            _utilityService = utilityService;
-            _context = context;
-        }
+		public UtilityController(IUtilityService utilityService, RentalManagementContext context)
+		{
+			_utilityService = utilityService;
+			_context = context;
+		}
 
-        [HttpGet]
-        [Route("")]
-        public async Task<IActionResult> Index()
-        {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdStr, out var userId))
-            {
-                return Unauthorized("Invalid User ID.");
-            }
+		[HttpGet]
+		[Route("")]
+		public async Task<IActionResult> Index()
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!int.TryParse(userIdStr, out var userId))
+			{
+				return Unauthorized("Invalid User ID.");
+			}
 
-            var utilities = await _utilityService.GetAllUtilitiesAsync();
-            ViewBag.Tenants = await GetTenantsSelectList(userId);
+			var utilities = await _utilityService.GetAllUtilitiesAsync();
+			ViewBag.Tenants = await GetTenantsSelectList(userId);
 
-            return View("~/Views/Landlord/Utility.cshtml", utilities);
-        }
+			return View("~/Views/Landlord/Utility.cshtml", utilities);
+		}
 
-        [HttpGet]
-        [Route("Readings/{utilityId}")]
-        public async Task<IActionResult> GetReadings(int utilityId)
-        {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdStr, out var userId))
-            {
-                return Unauthorized("Invalid User ID.");
-            }
+		[HttpGet]
+		[Route("Readings/{utilityId}")]
+		public async Task<IActionResult> GetReadings(int utilityId)
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!int.TryParse(userIdStr, out var userId))
+			{
+				return Unauthorized("Invalid User ID.");
+			}
 
-            var readings = await _utilityService.GetReadingsAsync(utilityId);
-            return Json(readings);
-        }
+			var readings = await _utilityService.GetReadingsAsync(utilityId);
+			return Json(readings);
+		}
 
-        [HttpPost]
-        [Route("")]
-        public async Task<IActionResult> Add(CreateUtilityDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+		[HttpPost]
+		[Route("")]
+		public async Task<IActionResult> Add(CreateUtilityDto dto)
+		{
+			try
+			{
+				if (!ModelState.IsValid)
+					return BadRequest(ModelState);
 
-            await _utilityService.CreateUtilityAsync(dto);
-            return RedirectToAction(nameof(Index));
-        }
+				await _utilityService.CreateUtilityAsync(dto);
+				return RedirectToAction(nameof(Index));
+			}
+			catch (Exception ex)
+			{
+				// Log the error
+				return StatusCode(500, "Error creating utility");
+			}
+		}
 
-        [HttpPost]
-        [Route("Edit/{id}")]
-        public async Task<IActionResult> Edit(int id, [FromBody] CreateUtilityDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+		[HttpPost]
+		[Route("Edit/{id}")]
+		public async Task<IActionResult> Edit(int id, CreateUtilityDto dto)
+		{
+			if (!ModelState.IsValid)
+				return BadRequest(ModelState);
 
-            var utility = await _utilityService.GetUtilityByIdAsync(id);
-            if (utility == null)
-                return NotFound();
+			var utility = await _utilityService.GetUtilityByIdAsync(id);
+			if (utility == null)
+				return NotFound();
 
-            utility.Name = dto.Name;
-            utility.Cost = dto.Cost;
+			utility.Name = dto.Name;
+			utility.Cost = dto.Cost;
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
+			await _context.SaveChangesAsync();
+			return RedirectToAction(nameof(Index));
+		}
 
-        [HttpPost]
-        [Route("Delete/{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var utility = await _utilityService.GetUtilityByIdAsync(id);
-            if (utility == null)
-                return NotFound();
+		[HttpPost]
+		[Route("Delete/{id}")]
+		public async Task<IActionResult> Delete(int id)
+		{
+			var utility = await _utilityService.GetUtilityByIdAsync(id);
+			if (utility == null)
+				return NotFound();
 
-            _context.Utilities.Remove(utility);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
+			_context.Utilities.Remove(utility);
+			await _context.SaveChangesAsync();
+			return RedirectToAction(nameof(Index));
+		}
 
-        [HttpPost]
-        [Route("Reading/Add/{utilityId}")]
-        public async Task<IActionResult> AddReading(int utilityId, [FromBody] CreateUtilityReadingDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+[HttpPost]
+[Route("Reading/Add/{utilityId}")]
+public async Task<IActionResult> AddReading(int utilityId, [FromBody] CreateUtilityReadingDto dto)
+{
+	try
+	{
+		if (!ModelState.IsValid)
+			return BadRequest(ModelState);
 
-            await _utilityService.AddReadingAsync(utilityId, dto);
-            return RedirectToAction(nameof(Index));
-        }
+		await _utilityService.AddReadingAsync(utilityId, dto);
+		return Ok();
+	}
+	catch (InvalidOperationException ex)
+	{
+		return BadRequest(ex.Message);
+	}
+	catch (Exception ex)
+	{
+		return StatusCode(500, "Error adding reading");
+	}
+}
 
-        [HttpPost]
-        [Route("Reading/Edit/{id}")]
-        public async Task<IActionResult> EditReading(int id, [FromBody] CreateUtilityReadingDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+[HttpPost]
+[Route("Reading/Edit/{id}")]
+public async Task<IActionResult> EditReading(int id, [FromBody] CreateUtilityReadingDto dto)
+{
+	try
+	{
+		if (!ModelState.IsValid)
+		{
+			var errors = string.Join("; ", ModelState.Values
+				.SelectMany(v => v.Errors)
+				.Select(e => e.ErrorMessage));
+			return BadRequest($"Validation failed: {errors}");
+		}
 
-            await _utilityService.UpdateReadingAsync(id, dto);
-            return RedirectToAction(nameof(Index));
-        }
+		var reading = await _utilityService.GetReadingByIdAsync(id);
+		if (reading == null)
+			return NotFound($"Reading with ID {id} not found");
 
-        [HttpPost]
-        [Route("Reading/Delete/{id}")]
-        public async Task<IActionResult> DeleteReading(int id)
-        {
-            var reading = await _utilityService.GetReadingByIdAsync(id);
-            if (reading == null)
-                return NotFound();
+		await _utilityService.UpdateReadingAsync(id, dto);
+		return Ok();
+	}
+	catch (Exception ex)
+	{
+		// Log the exception here
+		return StatusCode(500, $"Internal server error: {ex.Message}");
+	}
+}
 
-            _context.UtilityReadings.Remove(reading);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
+[HttpPost]
+[Route("Reading/Delete/{id}")]
+public async Task<IActionResult> DeleteReading(int id)
+{
+	try
+	{
+		var reading = await _utilityService.GetReadingByIdAsync(id);
+		if (reading == null)
+			return NotFound($"Reading with ID {id} not found");
 
-        private async Task<List<SelectListItem>> GetTenantsSelectList(int userId)
-        {
-            return await _context.Users
-                .Where(u => u.House.Property.UserId == userId)
-                .Select(u => new SelectListItem
-                {
-                    Value = u.Id.ToString(),
-                    Text = $"{u.FullName} ({u.House.HouseNumber})"
-                })
-                .ToListAsync();
-        }
-    }
+		_context.UtilityReadings.Remove(reading);
+		await _context.SaveChangesAsync();
+		return Ok();
+	}
+	catch (Exception ex)
+	{
+		// Log the exception here
+		return StatusCode(500, $"Internal server error: {ex.Message}");
+	}
+}
+		private async Task<List<SelectListItem>> GetTenantsSelectList(int userId)
+		{
+			return await _context.Users
+				.Where(u => u.House.Property.UserId == userId)
+				.Select(u => new SelectListItem
+				{
+					Value = u.Id.ToString(),
+					Text = $"{u.FullName} ({u.House.HouseNumber})"
+				})
+				.ToListAsync();
+		}
+		
+		[HttpGet]
+[Route("Reading/Check/{utilityId}/{tenantId}")]
+public async Task<IActionResult> CheckExistingReading(int utilityId, int tenantId)
+{
+    var existingReading = await _context.UtilityReadings
+        .AnyAsync(r => r.UtilityId == utilityId && r.TenantId == tenantId);
+    
+    return Json(existingReading);
+}
+	}
 }
