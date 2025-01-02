@@ -58,6 +58,10 @@ public class RentalManagementContext : DbContext
 			entity.Property(e => e.Rent)
 				.HasColumnType("decimal(18,2)")
 				.IsRequired();
+				
+			entity.Property(e => e.VacantSince)
+				.HasColumnType("datetime2");
+					
 
 			// Relationship with Property
 			entity.HasOne(h => h.Property)

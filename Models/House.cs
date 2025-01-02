@@ -13,7 +13,7 @@ public class House
 
 	public bool IsOccupied { get; set; } = false;
 	
-	
+	public DateTime? VacantSince { get; set; } = DateTime.UtcNow;
 
 
 	// Foreign key to Property

@@ -169,60 +169,60 @@
 <div class="modal fade" id="editTenantModal" tabindex="-1" aria-labelledby="editTenantModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form id="editTenantForm" asp-action="EditTenant" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" id="editTenantId" name="id" />
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editTenantModalLabel">
-                        <i class="fas fa-user-edit me-2"></i>Edit Tenant
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Full Name</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-user"></i></span>
-                            <input type="text" class="form-control" id="editFullName" name="FullName" required />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" class="form-control" id="editEmail" name="Email" required />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Phone Number</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input type="tel" class="form-control" id="editPhoneNumber" name="PhoneNumber" required />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">House Number</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-home"></i></span>
-                            <select class="form-select" id="editHouseNumber" name="HouseNumber" required>
-                                <option value="">-- Select House --</option>
-                                @foreach (var house in Model.AvailableHouses)
-                                {
-                                    <option value="@house.Value">@house.Text</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>Close
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Changes
-                    </button>
-                </div>
-            </form>
+<form id="editTenantForm" asp-controller="AddTenants" asp-action="EditTenant" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="editTenantId" name="id" />
+    <div class="modal-header">
+        <h5 class="modal-title" id="editTenantModalLabel">
+            <i class="fas fa-user-edit me-2"></i>Edit Tenant
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                <input type="text" class="form-control" id="editFullName" name="FullName" required />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input type="email" class="form-control" id="editEmail" name="Email" required />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                <input type="tel" class="form-control" id="editPhoneNumber" name="PhoneNumber" required />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">House Number</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-home"></i></span>
+                <select class="form-select" id="editHouseNumber" name="HouseNumber" required>
+                    <option value="">-- Select House --</option>
+                    @foreach (var house in Model.AvailableHouses)
+                    {
+                        <option value="@house.Value">@house.Text</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>Close
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Save Changes
+        </button>
+    </div>
+</form>
         </div>
     </div>
 </div>
@@ -285,23 +285,53 @@
             // Initialize DataTable
             $('#tenantsTable').DataTable();
 
-            // Handle Edit Modal
-            $('#editTenantModal').on('show.bs.modal', function (event) {
-                var button = $(event.relatedTarget);
-                var id = button.data('tenant-id');
-                var name = button.data('tenant-name');
-                var email = button.data('tenant-email');
-                var phone = button.data('tenant-phone');
-                var house = button.data('tenant-house');
+$(document).ready(function() {
+    // Initialize form validation
+    $("#editTenantForm").validate({
+        rules: {
+            FullName: "required",
+            Email: {
+                required: true,
+                email: true
+            },
+            PhoneNumber: "required",
+            HouseNumber: "required"
+        },
+        messages: {
+            FullName: "Please enter the full name",
+            Email: {
+                required: "Please enter an email address",
+                email: "Please enter a valid email address"
+            },
+            PhoneNumber: "Please enter a phone number",
+            HouseNumber: "Please select a house"
+        },
+        submitHandler: function(form) {
+            form.submit();
+        }
+    });
 
-                var modal = $(this);
-                modal.find('#editTenantId').val(id);
-                modal.find('#editFullName').val(name);
-                modal.find('#editEmail').val(email);
-                modal.find('#editPhoneNumber').val(phone);
-                modal.find('#editHouseNumber').val(house);
-            });
+    // Handle Edit Modal
+    $('#editTenantModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var id = button.data('tenant-id');
+        var name = button.data('tenant-name');
+        var email = button.data('tenant-email');
+        var phone = button.data('tenant-phone');
+        var house = button.data('tenant-house');
 
+        var modal = $(this);
+        modal.find('#editTenantId').val(id);
+        modal.find('#editFullName').val(name);
+        modal.find('#editEmail').val(email);
+        modal.find('#editPhoneNumber').val(phone);
+        
+        // Set the house number with a slight delay
+        setTimeout(function() {
+            modal.find('#editHouseNumber').val(house);
+        }, 100);
+    });
+});
             // Handle Delete Modal
             $('#deleteTenantModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget);

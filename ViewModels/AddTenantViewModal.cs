@@ -3,37 +3,33 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace RentalManagementSystem.ViewModels
 {
-    public class AddTenantViewModel
-    {
-        [Required]
-        [Display(Name = "Full Name")]
-        public string FullName { get; set; }
+public class AddTenantViewModel
+{
+    [Required(ErrorMessage = "Full Name is required")]
+    [Display(Name = "Full Name")]
+    public string FullName { get; set; }
 
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email Address")]
-        public string Email { get; set; }
+    [Required(ErrorMessage = "Email Address is required")]
+    [EmailAddress(ErrorMessage = "Invalid Email Address")]
+    [Display(Name = "Email Address")]
+    public string Email { get; set; }
 
-        [Required]
-        [Phone]
-        [Display(Name = "Phone Number")]
-        public string PhoneNumber { get; set; }
+    [Required(ErrorMessage = "Phone Number is required")]
+    [Phone(ErrorMessage = "Invalid Phone Number")]
+    [Display(Name = "Phone Number")]
+    public string PhoneNumber { get; set; }
 
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 8)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Temporary Password")]
-        public string Password { get; set; }
+    [Display(Name = "Temporary Password")]
+    public string? Password { get; set; }
 
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm Temporary Password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; }
+    [Display(Name = "Confirm Temporary Password")]
+    [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+    public string? ConfirmPassword { get; set; }
 
-        [Required]
-        [Display(Name = "House Number")]
-        public string HouseNumber { get; set; }
-    }
+    [Required(ErrorMessage = "House Number is required")]
+    [Display(Name = "House Number")]
+    public string HouseNumber { get; set; }
+}
 
     public class TenantListViewModel
     {

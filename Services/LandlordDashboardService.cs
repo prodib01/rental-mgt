@@ -53,8 +53,10 @@ public async Task<LandlordDashboardViewModel> GetDashboardDataAsync(string userI
 		.Where(h => !h.IsOccupied)
 		.Select(h => new VacantHouseViewModel
 		{
+			HouseNumber = h.HouseNumber,
 			Address = h.Property.Address,
 			MonthlyRent = h.Rent,
+			VacantSince = h.VacantSince
 		})
 		.ToList();
 
@@ -63,35 +65,52 @@ public async Task<LandlordDashboardViewModel> GetDashboardDataAsync(string userI
 		.Where(h => h.IsOccupied)
 		.Sum(h => h.Rent);
 		
-    var recentPayments = await _context.Payments
-        .Include(p => p.House)
-        .ThenInclude(h => h.Property)
-        .Where(p => p.House.Property.UserId == int.Parse(userId) && p.PaymentStatus == "Completed")
-        .OrderByDescending(p => p.PaymentDate)
-        .Take(5) // Get the 5 most recent payments
-        .Select(p => new RecentPaymentViewModel
-        {
-            TenantName = p.User.FullName,
-            PropertyAddress = p.House.Property.Address,
-            Amount = p.Amount,
-            PaymentDate = p.PaymentDate
-        })
-        .ToListAsync();
+	var upcomingLeaseRenewals = await _context.Leases
+	.Include(l => l.Tenant)
+	.Where(l => l.EndDate >= DateTime.UtcNow && l.EndDate <= DateTime.UtcNow.AddDays(30))
+	.CountAsync();	
+		
+	var recentPayments = await _context.Payments
+		.Include(p => p.House)
+		.ThenInclude(h => h.Property)
+		.Where(p => p.House.Property.UserId == int.Parse(userId) && p.PaymentStatus == "Completed")
+		.OrderByDescending(p => p.PaymentDate)
+		.Take(5) // Get the 5 most recent payments
+		.Select(p => new RecentPaymentViewModel
+		{
+			TenantName = p.User.FullName,
+			PropertyAddress = p.House.Property.Address,
+			Amount = p.Amount,
+			PaymentDate = p.PaymentDate
+		})
+		.ToListAsync();
 		
 
 	return new LandlordDashboardViewModel
 	{
-		TotalProperties = totalProperties,
+		TotalProperties = totalHouses,
 		MonthlyRevenue = monthlyRevenue,
 		OccupiedProperties = occupiedHouses,
 		VacantProperties = vacantHouses,
 		VacantHouses = vacantHousesList, // Populate the vacant houses list
 		TotalTenants = 0, // Replace with actual tenant count
 		PendingMaintenanceRequests = 0, // Replace with maintenance request data
-		UpcomingLeaseRenewals = 0, // Replace with lease renewal data
+		UpcomingLeaseRenewals = upcomingLeaseRenewals,
 		RecentPayments = new List<RecentPaymentViewModel>() // Replace with recent payment data
 	};
 }
+
+public async Task MarkHouseAsVacant(int houseId)
+{
+	var house = await _context.Houses.FindAsync(houseId);
+	if (house != null)
+	{
+		house.IsOccupied = false;
+		house.VacantSince = DateTime.UtcNow;
+		await _context.SaveChangesAsync();
+	}
+}
+
 
 	}
 }

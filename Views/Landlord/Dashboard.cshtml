@@ -255,7 +255,7 @@
                 <div class="row g-4 mb-4">
                     <div class="col-md-3">
                         <div class="dashboard-card metric-card bg-primary text-white">
-                            <h6 class="card-title">Total Properties</h6>
+                            <h6 class="card-title">Total Houses</h6>
                             <h2 class="card-text">@Model.TotalProperties</h2>
                             <small>@Model.OccupiedProperties occupied, @Model.VacantProperties vacant</small>
                         </div>
@@ -264,7 +264,7 @@
                         <div class="dashboard-card metric-card bg-success text-white">
                             <h6 class="card-title">Monthly Revenue</h6>
                             <h2 class="card-text">$@Model.MonthlyRevenue.ToString("N0")</h2>
-                            <small>From @Model.OccupiedProperties properties</small>
+                            <small>From @Model.OccupiedProperties houses</small>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -340,6 +340,7 @@
                 <table class="table">
                     <thead>
                         <tr>
+                        <th>House Number</th>
                             <th>Address</th>
                             <th>Monthly Rent</th>
                             <th>Vacant Since</th>
@@ -351,9 +352,10 @@
                             foreach (var house in Model.VacantHouses)
                             {
                                 <tr>
+                                <td>@house.HouseNumber
                                     <td>@house.Address</td>
                                     <td>@house.MonthlyRent.ToString("C")</td>
-                                    <td>@house.VacantSince?.ToShortDateString() ?? "Unknown"</td>
+                                    <td>@house.VacantSince?.ToShortDateString()</td>
                                 </tr>
                             }
                         }
