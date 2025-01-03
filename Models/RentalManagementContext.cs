@@ -21,6 +21,7 @@ public class RentalManagementContext : DbContext
 	public DbSet<LeaseDocument> LeaseDocuments { get; set; }
 	public DbSet<Utility> Utilities { get; set; }
 	public DbSet<UtilityReading> UtilityReadings { get; set; }
+	public DbSet<Request> Requests { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -249,6 +250,61 @@ public class RentalManagementContext : DbContext
 				.HasForeignKey(e => e.TenantId)
 				.OnDelete(DeleteBehavior.Cascade); // Delete Utilities when Tenant is deleted	
 		});
+		
+    modelBuilder.Entity<Request>(entity =>
+    {
+        // Set the table name
+        entity.ToTable("Requests");
+
+        // Configure primary key
+        entity.HasKey(e => e.Id);
+
+        // Configure TenantId as a foreign key
+			entity.HasOne(e => e.Tenant)  // Each Utility has one Tenant
+				.WithMany() // A Tenant can have multiple Utilities
+				.HasForeignKey(e => e.TenantId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+        // Configure Title property
+        entity.Property(e => e.Title)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        // Configure Description property
+        entity.Property(e => e.Description)
+            .IsRequired()
+            .HasMaxLength(500);
+
+        // Configure Priority as an enum stored as a string
+        entity.Property(e => e.Priority)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        // Configure Status as an enum stored as a string
+        entity.Property(e => e.Status)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        // Configure CreatedAt with a default value
+        entity.Property(e => e.CreatedAt)
+            .HasDefaultValueSql("GETUTCDATE()")
+            .ValueGeneratedOnAdd();
+
+        // Configure UpdatedAt to update automatically
+        entity.Property(e => e.UpdatedAt)
+            .ValueGeneratedOnUpdate();
+
+        // Optional: Configure CompletedAt as nullable
+        entity.Property(e => e.CompletedAt)
+            .IsRequired(false);
+
+        // Configure LandlordNotes as nullable with a maximum length
+        entity.Property(e => e.LandlordNotes)
+            .IsRequired(false)
+            .HasMaxLength(1000);
+    });
 
 	}
 

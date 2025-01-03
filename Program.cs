@@ -7,6 +7,9 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Net.Http.Headers;
 using RentalManagementSystem.Services;
+using AutoMapper;
+using RentalManagementSystem;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,12 +18,14 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Add services to the container.
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());  // Changed this line
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<RentalManagementContext>();
 builder.Services.AddScoped<ILandlordDashboardService, LandlordDashboardService>();
 builder.Services.AddScoped<ILeaseDocumentService, LeaseDocumentService>();
 builder.Services.AddScoped<IUtilityService, UtilityService>();
+builder.Services.AddScoped<IRequestService, RequestService>();
 
 // Add session support
 builder.Services.AddSession(options =>
