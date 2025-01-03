@@ -11,7 +11,9 @@ namespace RentalManagementSystem
         {
             CreateMap<Request, RequestDto>()
                 .ForMember(dest => dest.TenantName, 
-                    opt => opt.MapFrom(src => src.Tenant.FullName));
+                    opt => opt.MapFrom(src => src.Tenant.FullName))
+                .ForMember(dest => dest.HouseNumber,
+                    opt => opt.MapFrom(src => src.Tenant.House.HouseNumber)); // Adding mapping for HouseNumber
 
             CreateMap<CreateRequestDto, Request>();
             CreateMap<RequestDto, RequestViewModel>();

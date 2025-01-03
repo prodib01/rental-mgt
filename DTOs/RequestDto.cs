@@ -8,8 +8,10 @@ namespace RentalManagementSystem.DTOs
 	public class RequestDto
 {
 	public int Id { get; set; }
+	
+	public int TenantId { get; set; }
 	public string TenantName { get; set; }
-	public string PropertyAddress { get; set; }
+	public string HouseNumber { get; set; }
 	public string Title { get; set; }
 	public string Description { get; set; }
 	public RequestPriority Priority { get; set; }

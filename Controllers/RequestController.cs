@@ -55,6 +55,7 @@ public class RequestController : Controller
 			TenantName = r.TenantName,
 			Title = r.Title,
 			Description = r.Description,
+			HouseNumber = r.HouseNumber,
 			Priority = r.Priority,
 			Status = r.Status,
 			CreatedAt = r.CreatedAt,
