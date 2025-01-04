@@ -69,6 +69,16 @@ public async Task<LandlordDashboardViewModel> GetDashboardDataAsync(string userI
 	.Include(l => l.Tenant)
 	.Where(l => l.EndDate >= DateTime.UtcNow && l.EndDate <= DateTime.UtcNow.AddDays(30))
 	.CountAsync();	
+	
+var pendingMaintenanceRequests = await _context.Requests
+    .Include(r => r.Tenant.House)
+    .Where(r => r.Tenant.House.Property.UserId == int.Parse(userId) && r.Status == RequestStatus.Pending)
+    .CountAsync();
+
+	
+	var totalTenants = await _context.Users
+	.Where(u => u.Role == "Tenant" && u.House != null && u.House.Property.UserId == int.Parse(userId))
+	.CountAsync();
 		
 	var recentPayments = await _context.Payments
 		.Include(p => p.House)
@@ -92,11 +102,11 @@ public async Task<LandlordDashboardViewModel> GetDashboardDataAsync(string userI
 		MonthlyRevenue = monthlyRevenue,
 		OccupiedProperties = occupiedHouses,
 		VacantProperties = vacantHouses,
-		VacantHouses = vacantHousesList, // Populate the vacant houses list
-		TotalTenants = 0, // Replace with actual tenant count
-		PendingMaintenanceRequests = 0, // Replace with maintenance request data
+		VacantHouses = vacantHousesList, 
+		TotalTenants = totalTenants,
+		PendingMaintenanceRequests = pendingMaintenanceRequests,
 		UpcomingLeaseRenewals = upcomingLeaseRenewals,
-		RecentPayments = new List<RecentPaymentViewModel>() // Replace with recent payment data
+		RecentPayments = new List<RecentPaymentViewModel>() 
 	};
 }
 
