@@ -37,23 +37,38 @@ public class RequestService : IRequestService
 	{
 		var requests = await _context.Requests
 			.Include(r => r.Tenant)
+			.ThenInclude(t => t.House)
 			.Where(r => r.Tenant.House.Property.UserId == landlordId)
 			.OrderByDescending(r => r.CreatedAt)
 			.ToListAsync();
 
-		return _mapper.Map<IEnumerable<RequestDto>>(requests);
+		    return requests.Select(request => new RequestDto
+    {
+        Id = request.Id,
+        TenantId = request.TenantId,
+        TenantName = request.Tenant.FullName, // Assuming you have a FullName property
+        HouseNumber = request.Tenant.House.HouseNumber, // Map the house number
+        Title = request.Title,
+        Description = request.Description,
+        Priority = request.Priority,
+        Status = request.Status,
+        CreatedAt = request.CreatedAt,
+        UpdatedAt = request.UpdatedAt,
+        CompletedAt = request.CompletedAt,
+        LandlordNotes = request.LandlordNotes
+    }).ToList();
 	}
 
 public async Task<RequestDto> GetRequestByIdAsync(int requestId)
 {
-    var request = await _context.Requests
-        .Include(r => r.Tenant)
-        .FirstOrDefaultAsync(r => r.Id == requestId);
+	var request = await _context.Requests
+		.Include(r => r.Tenant)
+		.FirstOrDefaultAsync(r => r.Id == requestId);
 
-    if (request == null) 
-        throw new InvalidOperationException("Request not found");
+	if (request == null) 
+		throw new InvalidOperationException("Request not found");
 
-    return _mapper.Map<RequestDto>(request);
+	return _mapper.Map<RequestDto>(request);
 }
 
 	public async Task<RequestDto> CreateRequestAsync(CreateRequestDto dto)
@@ -69,31 +84,40 @@ public async Task<RequestDto> GetRequestByIdAsync(int requestId)
 
 public async Task<RequestDto> UpdateRequestStatusAsync(int requestId, UpdateRequestDto updateDto)
 {
-    var request = await _context.Requests.FindAsync(requestId);
-    if (request == null) 
-        throw new InvalidOperationException("Request not found");
+	var request = await _context.Requests.FindAsync(requestId);
+	if (request == null) 
+		throw new InvalidOperationException("Request not found");
 
-    request.Status = updateDto.Status;
-    request.LandlordNotes = updateDto.LandlordNotes;
-    request.UpdatedAt = DateTime.UtcNow;
+	request.Status = updateDto.Status;
+	request.LandlordNotes = updateDto.LandlordNotes;
+	request.UpdatedAt = DateTime.UtcNow;
 
-    if (updateDto.Status == RequestStatus.Completed)
-    {
-        request.CompletedAt = DateTime.UtcNow;
-    }
+	if (updateDto.Status == RequestStatus.Completed)
+	{
+		request.CompletedAt = DateTime.UtcNow;
+	}
 
-    await _context.SaveChangesAsync();
-    return _mapper.Map<RequestDto>(request);
+	await _context.SaveChangesAsync();
+	return _mapper.Map<RequestDto>(request);
 }
 
 public async Task DeleteRequestAsync(int requestId)
 {
-    var request = await _context.Requests.FindAsync(requestId);
-    if (request == null) 
-        throw new InvalidOperationException("Request not found");
+	var request = await _context.Requests.FindAsync(requestId);
+	if (request == null) 
+		throw new InvalidOperationException("Request not found");
 
-    _context.Requests.Remove(request);
-    await _context.SaveChangesAsync();
+	_context.Requests.Remove(request);
+	await _context.SaveChangesAsync();
+}
+
+public async Task<bool> VerifyRequestOwnership(int requestId, int landlordId)
+{
+	return await _context.Requests
+		.Include(r => r.Tenant)
+		.ThenInclude(t => t.House)
+		.ThenInclude(h => h.Property)
+		.AnyAsync(r => r.Id == requestId && r.Tenant.House.Property.UserId == landlordId);
 }
 }
 
