@@ -232,7 +232,6 @@
                                 <th>Tenant</th>
                                 <th>Property</th>
                                 <th>Priority</th>
-                                <th>Status</th>
                                 <th>Created</th>
                                 <th>Actions</th>
                             </tr>
@@ -253,11 +252,6 @@
                                     <td class="align-middle">
                                         <span class="badge bg-@GetPriorityColor(request.Priority) bg-opacity-10 text-@GetPriorityColor(request.Priority)">
                                             @request.Priority
-                                        </span>
-                                    </td>
-                                    <td class="align-middle">
-                                        <span class="badge bg-@GetStatusColor(request.Status) bg-opacity-10 text-@GetStatusColor(request.Status)">
-                                            @request.Status
                                         </span>
                                     </td>
                                     <td class="align-middle">@request.CreatedAt.ToString("MMM dd, yyyy")</td>
