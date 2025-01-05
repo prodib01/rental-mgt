@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace RentalManagementSystem.Migrations
 {
     [DbContext(typeof(RentalManagementContext))]
-    partial class RentalManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20250104170348_AddReportsMode")]
+    partial class AddReportsMode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,11 +103,11 @@ namespace RentalManagementSystem.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("HouseId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("NetIncome")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PropertyId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -117,7 +120,7 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("HouseId");
 
                     b.ToTable("FinancialReports", (string)null);
                 });
@@ -218,7 +221,7 @@ namespace RentalManagementSystem.Migrations
                     b.Property<DateTime>("GeneratedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PropertyId")
+                    b.Property<int>("HouseId")
                         .HasColumnType("int");
 
                     b.Property<int>("RenewedLeases")
@@ -226,7 +229,7 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("HouseId");
 
                     b.ToTable("LeaseReports", (string)null);
                 });
@@ -242,10 +245,10 @@ namespace RentalManagementSystem.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PendingRequests")
+                    b.Property<int>("HouseId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PropertyId")
+                    b.Property<int>("PendingRequests")
                         .HasColumnType("int");
 
                     b.Property<int>("ResolvedRequests")
@@ -262,7 +265,7 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("HouseId");
 
                     b.ToTable("MaintenanceReports", (string)null);
                 });
@@ -278,13 +281,13 @@ namespace RentalManagementSystem.Migrations
                     b.Property<DateTime>("GeneratedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("HouseId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("OccupancyRate")
                         .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("OccupiedUnits")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PropertyId")
                         .HasColumnType("int");
 
                     b.Property<int>("TotalUnits")
@@ -295,7 +298,7 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("HouseId");
 
                     b.ToTable("OccupancyReports", (string)null);
                 });
@@ -559,13 +562,13 @@ namespace RentalManagementSystem.Migrations
 
             modelBuilder.Entity("RentalManagementSystem.Models.FinancialReport", b =>
                 {
-                    b.HasOne("Property", "Property")
+                    b.HasOne("House", "House")
                         .WithMany()
-                        .HasForeignKey("PropertyId")
+                        .HasForeignKey("HouseId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Property");
+                    b.Navigation("House");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.Lease", b =>
@@ -600,35 +603,35 @@ namespace RentalManagementSystem.Migrations
 
             modelBuilder.Entity("RentalManagementSystem.Models.LeaseReport", b =>
                 {
-                    b.HasOne("Property", "Property")
+                    b.HasOne("House", "House")
                         .WithMany()
-                        .HasForeignKey("PropertyId")
+                        .HasForeignKey("HouseId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Property");
+                    b.Navigation("House");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.MaintenanceReport", b =>
                 {
-                    b.HasOne("Property", "Property")
+                    b.HasOne("House", "House")
                         .WithMany()
-                        .HasForeignKey("PropertyId")
+                        .HasForeignKey("HouseId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Property");
+                    b.Navigation("House");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.OccupancyReport", b =>
                 {
-                    b.HasOne("Property", "Property")
+                    b.HasOne("House", "House")
                         .WithMany()
-                        .HasForeignKey("PropertyId")
+                        .HasForeignKey("HouseId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Property");
+                    b.Navigation("House");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.Payment", b =>
