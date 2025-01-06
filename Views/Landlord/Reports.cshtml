@@ -1,0 +1,260 @@
+@model RentalManagementSystem.ViewModels.ReportIndexViewModel
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Reports Dashboard</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100 cursor-pointer report-card" data-report-type="financial" data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <div class="card-body text-center">
+                            <i class="fas fa-dollar-sign fa-3x mb-3 text-primary"></i>
+                            <h4>Financial Report</h4>
+                            <p class="text-muted">View revenue, expenses, and financial metrics</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100 cursor-pointer report-card" data-report-type="occupancy" data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <div class="card-body text-center">
+                            <i class="fas fa-building fa-3x mb-3 text-success"></i>
+                            <h4>Occupancy Report</h4>
+                            <p class="text-muted">Monitor unit occupancy and vacancy rates</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100 cursor-pointer report-card" data-report-type="maintenance" data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <div class="card-body text-center">
+                            <i class="fas fa-tools fa-3x mb-3 text-warning"></i>
+                            <h4>Maintenance Report</h4>
+                            <p class="text-muted">Track maintenance requests and resolutions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100 cursor-pointer report-card" data-report-type="lease" data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <div class="card-body text-center">
+                            <i class="fas fa-file-contract fa-3x mb-3 text-info"></i>
+                            <h4>Lease Report</h4>
+                            <p class="text-muted">View lease status and renewals</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="reportModalLabel">Generate Report</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="propertyId" class="form-label">Property</label>
+                            <select class="form-select" id="propertyId">
+                                <option value="">All Properties</option>
+                                <!-- Add property options dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="reportContent" class="mt-4">
+                    <!-- Report content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="exportExcel">Export Excel</button>
+                <button type="button" class="btn btn-danger" id="exportPdf">Export PDF</button>
+                <button type="button" class="btn btn-primary" id="generateReport">Generate Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <style>
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        .report-card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .stat-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+
+
+@section Scripts {
+    <script>
+        let currentReportType = '';
+
+        $('.report-card').click(function() {
+            currentReportType = $(this).data('report-type');
+            $('#reportModalLabel').text(`Generate ${currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1)} Report`);
+        });
+
+        $('#generateReport').click(function() {
+            const filter = {
+                reportType: currentReportType,
+                startDate: $('#startDate').val(),
+                endDate: $('#endDate').val(),
+                propertyId: $('#propertyId').val() || null
+            };
+
+            $.ajax({
+                url: '/Reports/GenerateReport',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(filter),
+                success: function(data) {
+                    displayReport(data);
+                },
+                error: function(xhr) {
+                    alert('Error generating report');
+                }
+            });
+        });
+
+        function displayReport(data) {
+            const content = $('#reportContent');
+            content.empty();
+
+            switch(currentReportType) {
+                case 'financial':
+                    displayFinancialReport(data);
+                    break;
+                case 'occupancy':
+                    displayOccupancyReport(data);
+                    break;
+                case 'maintenance':
+                    displayMaintenanceReport(data);
+                    break;
+                case 'lease':
+                    displayLeaseReport(data);
+                    break;
+            }
+        }
+
+        function displayFinancialReport(data) {
+            const content = $('#reportContent');
+            content.html(`
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-primary text-white stat-card">
+                            <div class="card-body">
+                                <h5>Total Revenue</h5>
+                                <h3>${formatCurrency(data.totalRevenue)}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white stat-card">
+                            <div class="card-body">
+                                <h5>Net Income</h5>
+                                <h3>${formatCurrency(data.netIncome)}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Property</th>
+                                <th>Tenant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.payments.map(payment => `
+                                <tr>
+                                    <td>${formatDate(payment.date)}</td>
+                                    <td>${formatCurrency(payment.amount)}</td>
+                                    <td>${payment.propertyAddress}</td>
+                                    <td>${payment.tenantName}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `);
+        }
+
+        // Add similar display functions for other report types...
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString();
+        }
+
+        $('.export-btn').click(function() {
+            const format = $(this).data('format');
+            const filter = {
+                filter: {
+                    reportType: currentReportType,
+                    startDate: $('#startDate').val(),
+                    endDate: $('#endDate').val(),
+                    propertyId: $('#propertyId').val() || null
+                },
+                format: format
+            };
+
+            $.ajax({
+                url: '/Reports/ExportReport',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(filter),
+                success: function(response) {
+                    // Handle file download
+                    const blob = new Blob([response], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${currentReportType}-report.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                },
+                error: function(xhr) {
+                    alert('Error exporting report');
+                }
+            });
+        });
+    </script>
+}
