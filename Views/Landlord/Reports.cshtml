@@ -60,31 +60,36 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="startDate" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="startDate">
+                <form id="reportForm">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" name="startDate">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" name="endDate">
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="endDate" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="endDate">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="propertyId" class="form-label">Property</label>
+                                <select class="form-select" id="propertyId" name="propertyId">
+                                    <option value="">All Properties</option>
+                                    @foreach (var property in Model.Properties)
+                                    {
+                                        <option value="@property.Value">@property.Text</option>
+                                    }
+                                </select>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="propertyId" class="form-label">Property</label>
-                            <select class="form-select" id="propertyId">
-                                <option value="">All Properties</option>
-                                <!-- Add property options dynamically -->
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                </form>
                 <div id="reportContent" class="mt-4">
                     <!-- Report content will be loaded here -->
                 </div>
@@ -118,143 +123,233 @@
 
 @section Scripts {
     <script>
-        let currentReportType = '';
+        $(document).ready(function() {
+            let currentReportType = '';
 
-        $('.report-card').click(function() {
-            currentReportType = $(this).data('report-type');
-            $('#reportModalLabel').text(`Generate ${currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1)} Report`);
-        });
+            // Debug logging
+            console.log('Script loaded');
 
-        $('#generateReport').click(function() {
-            const filter = {
-                reportType: currentReportType,
-                startDate: $('#startDate').val(),
-                endDate: $('#endDate').val(),
-                propertyId: $('#propertyId').val() || null
-            };
-
-            $.ajax({
-                url: '/Reports/GenerateReport',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(filter),
-                success: function(data) {
-                    displayReport(data);
-                },
-                error: function(xhr) {
-                    alert('Error generating report');
-                }
+            // Report card click handler
+            $('.report-card').on('click', function() {
+                currentReportType = $(this).data('report-type');
+                console.log('Selected report type:', currentReportType);
+                $('#reportModalLabel').text(`Generate ${currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1)} Report`);
             });
-        });
 
-        function displayReport(data) {
-            const content = $('#reportContent');
-            content.empty();
+            // Generate report button click handler
+            $('#generateReport').on('click', function(e) {
+                e.preventDefault();
+                console.log('Generate report clicked');
+                
+                if (!currentReportType) {
+                    alert('Please select a report type');
+                    return;
+                }
 
-            switch(currentReportType) {
-                case 'financial':
-                    displayFinancialReport(data);
-                    break;
-                case 'occupancy':
-                    displayOccupancyReport(data);
-                    break;
-                case 'maintenance':
-                    displayMaintenanceReport(data);
-                    break;
-                case 'lease':
-                    displayLeaseReport(data);
-                    break;
-            }
-        }
-
-        function displayFinancialReport(data) {
-            const content = $('#reportContent');
-            content.html(`
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card bg-primary text-white stat-card">
-                            <div class="card-body">
-                                <h5>Total Revenue</h5>
-                                <h3>${formatCurrency(data.totalRevenue)}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card bg-success text-white stat-card">
-                            <div class="card-body">
-                                <h5>Net Income</h5>
-                                <h3>${formatCurrency(data.netIncome)}</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Property</th>
-                                <th>Tenant</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.payments.map(payment => `
-                                <tr>
-                                    <td>${formatDate(payment.date)}</td>
-                                    <td>${formatCurrency(payment.amount)}</td>
-                                    <td>${payment.propertyAddress}</td>
-                                    <td>${payment.tenantName}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `);
-        }
-
-        // Add similar display functions for other report types...
-
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-        }
-
-        function formatDate(date) {
-            return new Date(date).toLocaleDateString();
-        }
-
-        $('.export-btn').click(function() {
-            const format = $(this).data('format');
-            const filter = {
-                filter: {
+                const filter = {
                     reportType: currentReportType,
                     startDate: $('#startDate').val(),
                     endDate: $('#endDate').val(),
-                    propertyId: $('#propertyId').val() || null
-                },
-                format: format
-            };
+                    propertyId: $('#propertyId').val() ? parseInt($('#propertyId').val()) : null
+                };
 
-            $.ajax({
-                url: '/Reports/ExportReport',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(filter),
-                success: function(response) {
-                    // Handle file download
-                    const blob = new Blob([response], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${currentReportType}-report.${format}`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                },
-                error: function(xhr) {
-                    alert('Error exporting report');
-                }
+                console.log('Sending request with filter:', filter);
+
+                $.ajax({
+                    url: '/Landlord/Reports/GenerateReport',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(filter),
+                    success: function(data) {
+                        console.log('Report generated successfully:', data);
+                        displayReport(data);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error generating report:', error);
+                        alert('Error generating report: ' + error);
+                    }
+                });
             });
-        });
+
+
+    // Add display functions for different report types
+    function displayFinancialReport(data) {
+        const content = $('#reportContent');
+        content.html(`
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-primary text-white stat-card">
+                        <div class="card-body">
+                            <h5>Total Revenue</h5>
+                            <h3>${formatCurrency(data.totalRevenue)}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-success text-white stat-card">
+                        <div class="card-body">
+                            <h5>Net Income</h5>
+                            <h3>${formatCurrency(data.netIncome)}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Property</th>
+                            <th>Tenant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.payments.map(payment => `
+                            <tr>
+                                <td>${formatDate(payment.date)}</td>
+                                <td>${formatCurrency(payment.amount)}</td>
+                                <td>${payment.propertyAddress}</td>
+                                <td>${payment.tenantName}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `);
+    }
+
+    function displayOccupancyReport(data) {
+        const content = $('#reportContent');
+        content.html(`
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-info text-white stat-card">
+                        <div class="card-body">
+                            <h5>Total Units</h5>
+                            <h3>${data.totalUnits}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white stat-card">
+                        <div class="card-body">
+                            <h5>Occupied Units</h5>
+                            <h3>${data.occupiedUnits}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-warning text-white stat-card">
+                        <div class="card-body">
+                            <h5>Vacancy Rate</h5>
+                            <h3>${formatPercentage(100 - data.occupancyRate)}%</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Unit Number</th>
+                            <th>Status</th>
+                            <th>Tenant</th>
+                            <th>Lease End Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.unitStatus.map(unit => `
+                            <tr>
+                                <td>${unit.unitNumber}</td>
+                                <td>${unit.isOccupied ? '<span class="badge bg-success">Occupied</span>' : '<span class="badge bg-warning">Vacant</span>'}</td>
+                                <td>${unit.tenantName || '-'}</td>
+                                <td>${unit.leaseEndDate ? formatDate(unit.leaseEndDate) : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `);
+    }
+
+    // Helper functions
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    }
+
+    function formatDate(date) {
+        return new Date(date).toLocaleDateString();
+    }
+
+    function formatPercentage(value) {
+        return value.toFixed(1);
+    }
+
+    function displayReport(data) {
+        const content = $('#reportContent');
+        content.empty();
+
+        switch(currentReportType) {
+            case 'financial':
+                displayFinancialReport(data);
+                break;
+            case 'occupancy':
+                displayOccupancyReport(data);
+                break;
+            case 'maintenance':
+                displayMaintenanceReport(data);
+                break;
+            case 'lease':
+                displayLeaseReport(data);
+                break;
+        }
+    }
+});
+
+    // Export PDF button click handler
+     $('#exportExcel, #exportPdf').on('click', function(e) {
+                e.preventDefault();
+                console.log('Export button clicked');
+                
+                const format = $(this).attr('id') === 'exportExcel' ? 'excel' : 'pdf';
+                const request = {
+                    filter: {
+                        reportType: currentReportType,
+                        startDate: $('#startDate').val(),
+                        endDate: $('#endDate').val(),
+                        propertyId: $('#propertyId').val() ? parseInt($('#propertyId').val()) : null
+                    },
+                    format: format
+                };
+
+                console.log('Sending export request:', request);
+
+                $.ajax({
+                    url: '/Landlord/Reports/ExportReport',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(request),
+                    xhrFields: {
+                        responseType: 'blob'
+                    },
+                    success: function(blob) {
+                        console.log('Export successful');
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${currentReportType}-report.${format}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error exporting report:', error);
+                        alert('Error exporting report: ' + error);
+                    }
+                });
+            });
+    }
     </script>
 }

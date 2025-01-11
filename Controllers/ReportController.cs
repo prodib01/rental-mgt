@@ -4,26 +4,56 @@ using RentalManagementSystem.ViewModels;
 using RentalManagementSystem.DTOs;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+
+
 
 namespace RentalManagementSystem.Controllers
 {
 	[Authorize]
 [Route("Landlord/Reports")]
-	public class ReportsController : Controller
+public class ReportsController : Controller
+{
+	private readonly IReportService _reportService;
+	private readonly RentalManagementContext _context;
+
+	public ReportsController(
+		IReportService reportService,
+		RentalManagementContext context)
 	{
-		private readonly IReportService _reportService;
+		_reportService = reportService;
+		_context = context;
+	}
 
-		public ReportsController(IReportService reportService)
+	public async Task<IActionResult> Index()
+	{
+		var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (!int.TryParse(userIdStr, out var userId))
 		{
-			_reportService = reportService;
+			return Unauthorized();
 		}
 
-		public IActionResult Index()
-		{
-			return View("~/Views/Landlord/Reports.cshtml", new ReportIndexViewModel());
-		}
+var properties = await _context.Properties
+    .Where(p => p.UserId == userId)
+    .Select(p => new SelectListItem
+    {
+        Value = p.Id.ToString(),
+        Text = p.Address
+    })
+    .ToListAsync();
 
-		[HttpPost]
+var viewModel = new ReportIndexViewModel
+{
+    Properties = properties
+};
+
+
+		return View("~/Views/Landlord/Reports.cshtml", viewModel);
+	}
+
+		[HttpPost("GenerateReport")]
 		public async Task<IActionResult> GenerateReport([FromBody] ReportFilterViewModel filter)
 		{
 			if (!ModelState.IsValid)
@@ -63,7 +93,7 @@ namespace RentalManagementSystem.Controllers
 			return Json(reportData);
 		}
 
-		[HttpPost]
+		[HttpPost("ExportReport")]
 		public async Task<IActionResult> ExportReport([FromBody] ExportRequestViewModel request)
 		{
 			var filterDto = new ReportFilterDto

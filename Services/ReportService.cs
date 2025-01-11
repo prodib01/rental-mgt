@@ -10,6 +10,7 @@ using RentalManagementSystem.ViewModels;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using OfficeOpenXml;
+using System.Security.Claims;
 
 namespace RentalManagementSystem.Services
 {
@@ -26,21 +27,51 @@ namespace RentalManagementSystem.Services
 	public class ReportService : IReportService
 	{
 		private readonly RentalManagementContext _context;
+		private readonly IHttpContextAccessor _httpContextAccessor;
 
-		public ReportService(RentalManagementContext context)
+public ReportService(RentalManagementContext context, IHttpContextAccessor httpContextAccessor)
+{
+    _context = context;
+    _httpContextAccessor = httpContextAccessor;
+}
+
+		
+			private async Task<bool> ValidateUserAccessToProperty(int? propertyId)
+	{
+		var userIdStr = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (!int.TryParse(userIdStr, out var userId))
 		{
-			_context = context;
+			return false;
 		}
+
+		if (!propertyId.HasValue)
+		{
+			// Check if user has any properties
+			return await _context.Properties.AnyAsync(p => p.UserId == userId);
+		}
+
+		return await _context.Properties
+			.AnyAsync(p => p.Id == propertyId && p.UserId == userId);
+	}
 
 		public async Task<FinancialReportDto> GenerateFinancialReportAsync(ReportFilterDto filter)
 		{
-			var payments = await _context.Payments
-				.Include(p => p.House)
-				.Where(p => (!filter.HouseId.HasValue || p.HouseId == filter.HouseId) &&
-							(!filter.StartDate.HasValue || p.PaymentDate >= filter.StartDate) &&
-							(!filter.EndDate.HasValue || p.PaymentDate <= filter.EndDate))
-				.ToListAsync();
+		if (!await ValidateUserAccessToProperty(filter.PropertyId))
+		{
+			throw new UnauthorizedAccessException("Access to property denied");
+		}
 
+		var userId = int.Parse(_httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+		var payments = await _context.Payments
+			.Include(p => p.House)
+			.ThenInclude(h => h.Property)
+			.Where(p => p.House.Property.UserId == userId &&
+					   (!filter.PropertyId.HasValue || p.House.PropertyId == filter.PropertyId) &&
+					   (!filter.StartDate.HasValue || p.PaymentDate >= filter.StartDate) &&
+					   (!filter.EndDate.HasValue || p.PaymentDate <= filter.EndDate))
+			.ToListAsync();
+			
 			var PropertyAddress = filter.PropertyId.HasValue
 				? await _context.Properties
 					.Where(p => p.Id == filter.PropertyId)
@@ -69,130 +100,130 @@ namespace RentalManagementSystem.Services
 
 public async Task<OccupancyReportDto> GenerateOccupancyReportAsync(ReportFilterDto filter)
 {
-    var houses = await _context.Houses
-        .Include(h => h.Property)
-        .Include(h => h.Tenant) // Include the Tenant property (not CurrentTenant)
-        .Where(h => !filter.PropertyId.HasValue || h.PropertyId == filter.PropertyId)
-        .ToListAsync();
+	var houses = await _context.Houses
+		.Include(h => h.Property)
+		.Include(h => h.Tenant) // Include the Tenant property (not CurrentTenant)
+		.Where(h => !filter.PropertyId.HasValue || h.PropertyId == filter.PropertyId)
+		.ToListAsync();
 
-    var propertyAddress = filter.PropertyId.HasValue
-        ? await _context.Properties
-            .Where(p => p.Id == filter.PropertyId)
-            .Select(p => p.Address)
-            .FirstOrDefaultAsync()
-        : "All Properties";
+	var propertyAddress = filter.PropertyId.HasValue
+		? await _context.Properties
+			.Where(p => p.Id == filter.PropertyId)
+			.Select(p => p.Address)
+			.FirstOrDefaultAsync()
+		: "All Properties";
 
-    var report = new OccupancyReportDto
-    {
-        GeneratedDate = DateTime.Now,
-        TotalUnits = houses.Count,
-        OccupiedUnits = houses.Count(h => h.Tenant != null), // Check if Tenant is not null
-        PropertyAddress = propertyAddress,
+	var report = new OccupancyReportDto
+	{
+		GeneratedDate = DateTime.Now,
+		TotalUnits = houses.Count,
+		OccupiedUnits = houses.Count(h => h.Tenant != null), // Check if Tenant is not null
+		PropertyAddress = propertyAddress,
 UnitStatus = houses.Select(h => new UnitStatusDto
 {
-    UnitNumber = h.HouseNumber,
-    IsOccupied = h.Tenant != null,
-    TenantName = h.Tenant?.FullName,
-    LeaseStartDate = h.Tenant?.Leases.FirstOrDefault()?.StartDate ?? DateTime.MinValue,
-    LeaseEndDate = h.Tenant?.Leases.FirstOrDefault()?.EndDate ?? DateTime.MinValue
+	UnitNumber = h.HouseNumber,
+	IsOccupied = h.Tenant != null,
+	TenantName = h.Tenant?.FullName,
+	LeaseStartDate = h.Tenant?.Leases.FirstOrDefault()?.StartDate ?? DateTime.MinValue,
+	LeaseEndDate = h.Tenant?.Leases.FirstOrDefault()?.EndDate ?? DateTime.MinValue
 }).ToList(),
-        VacantUnits = houses.Count(h => h.Tenant == null), // Check for vacant units where Tenant is null
-        OccupancyRate = houses.Any()
-            ? houses.Count(h => h.Tenant != null) * 100m / houses.Count
-            : 0
-    };
+		VacantUnits = houses.Count(h => h.Tenant == null), // Check for vacant units where Tenant is null
+		OccupancyRate = houses.Any()
+			? houses.Count(h => h.Tenant != null) * 100m / houses.Count
+			: 0
+	};
 
-    return report;
+	return report;
 }
 
 
 public async Task<MaintenanceReportDto> GenerateMaintenanceReportAsync(ReportFilterDto filter)
 {
-    var requestsQuery = _context.Requests
-        .Include(r => r.Tenant)
-        .ThenInclude(t => t.House)
-        .ThenInclude(h => h.Property)
-        .Where(r =>
-            (!filter.PropertyId.HasValue || r.Tenant.House.PropertyId == filter.PropertyId) &&
-            (!filter.StartDate.HasValue || r.CreatedAt >= filter.StartDate) &&
-            (!filter.EndDate.HasValue || r.CreatedAt <= filter.EndDate));
+	var requestsQuery = _context.Requests
+		.Include(r => r.Tenant)
+		.ThenInclude(t => t.House)
+		.ThenInclude(h => h.Property)
+		.Where(r =>
+			(!filter.PropertyId.HasValue || r.Tenant.House.PropertyId == filter.PropertyId) &&
+			(!filter.StartDate.HasValue || r.CreatedAt >= filter.StartDate) &&
+			(!filter.EndDate.HasValue || r.CreatedAt <= filter.EndDate));
 
-    // Fetch filtered data
-    var requests = await requestsQuery.ToListAsync();
+	// Fetch filtered data
+	var requests = await requestsQuery.ToListAsync();
 
-    // Determine property address
-    var propertyAddress = filter.PropertyId.HasValue
-        ? await _context.Properties
-            .Where(p => p.Id == filter.PropertyId)
-            .Select(p => p.Address)
-            .FirstOrDefaultAsync() ?? "Unknown Property"
-        : "All Properties";
+	// Determine property address
+	var propertyAddress = filter.PropertyId.HasValue
+		? await _context.Properties
+			.Where(p => p.Id == filter.PropertyId)
+			.Select(p => p.Address)
+			.FirstOrDefaultAsync() ?? "Unknown Property"
+		: "All Properties";
 
 var report = new MaintenanceReportDto
 {
-    StartDate = filter.StartDate ?? DateTime.MinValue,
-    EndDate = filter.EndDate ?? DateTime.Now,
-    TotalRequests = requests.Count,
-    ResolvedRequests = requests.Count(r => r.Status == RequestStatus.Completed),
-    PendingRequests = requests.Count(r => r.Status != RequestStatus.Completed),
-    PropertyAddress = propertyAddress,
-    Requests = requests.Select(r => new RequestSummaryDto
-    {
-        Title = r.Title,
-        Description = r.Description,
-        Status = r.Status.ToString(),
-        Priority = r.Priority.ToString(),
-        CreatedAt = r.CreatedAt,  // Remove the ?? DateTime.MinValue if CreatedAt is not nullable
-        CompletedAt = r.CompletedAt ?? DateTime.MinValue,  // Add null coalescing if CompletedAt is nullable
-        PropertyAddress = r.Tenant.House.Property.Address,
-        UnitNumber = r.Tenant.House.HouseNumber
-    }).ToList()
+	StartDate = filter.StartDate ?? DateTime.MinValue,
+	EndDate = filter.EndDate ?? DateTime.Now,
+	TotalRequests = requests.Count,
+	ResolvedRequests = requests.Count(r => r.Status == RequestStatus.Completed),
+	PendingRequests = requests.Count(r => r.Status != RequestStatus.Completed),
+	PropertyAddress = propertyAddress,
+	Requests = requests.Select(r => new RequestSummaryDto
+	{
+		Title = r.Title,
+		Description = r.Description,
+		Status = r.Status.ToString(),
+		Priority = r.Priority.ToString(),
+		CreatedAt = r.CreatedAt,  // Remove the ?? DateTime.MinValue if CreatedAt is not nullable
+		CompletedAt = r.CompletedAt ?? DateTime.MinValue,  // Add null coalescing if CompletedAt is nullable
+		PropertyAddress = r.Tenant.House.Property.Address,
+		UnitNumber = r.Tenant.House.HouseNumber
+	}).ToList()
 };
 
-    return report;
+	return report;
 }
 
 
 public async Task<LeaseReportDto> GenerateLeaseReportAsync(ReportFilterDto filter)
 {
-    var now = DateTime.UtcNow;
+	var now = DateTime.UtcNow;
 
-    // Fetch leases with related tenant and property data
-    var leases = await _context.Leases
-        .Include(l => l.Tenant) // Include tenant data
-        .Include(l => l.Tenant.House) // Include tenant's house
-        .ThenInclude(h => h.Property) // Include house's property
-        .Where(l => !filter.PropertyId.HasValue || l.Tenant.House.PropertyId == filter.PropertyId)
-        .ToListAsync();
+	// Fetch leases with related tenant and property data
+	var leases = await _context.Leases
+		.Include(l => l.Tenant) // Include tenant data
+		.Include(l => l.Tenant.House) // Include tenant's house
+		.ThenInclude(h => h.Property) // Include house's property
+		.Where(l => !filter.PropertyId.HasValue || l.Tenant.House.PropertyId == filter.PropertyId)
+		.ToListAsync();
 
-    // Determine property address or default to "All Properties"
-    var propertyAddress = filter.PropertyId.HasValue
-        ? await _context.Properties
-            .Where(p => p.Id == filter.PropertyId)
-            .Select(p => p.Address)
-            .FirstOrDefaultAsync()
-        : "All Properties";
+	// Determine property address or default to "All Properties"
+	var propertyAddress = filter.PropertyId.HasValue
+		? await _context.Properties
+			.Where(p => p.Id == filter.PropertyId)
+			.Select(p => p.Address)
+			.FirstOrDefaultAsync()
+		: "All Properties";
 
-    // Generate report
-    var report = new LeaseReportDto
-    {
-        GeneratedDate = now,
-        PropertyAddress = propertyAddress,
-        ActiveLeases = leases.Count(l => l.EndDate > now),
-        ExpiringLeases = leases.Count(l => l.EndDate <= now.AddMonths(2) && l.EndDate > now),
-        RenewedLeases = leases.Count(l => l.UpdatedAt.HasValue), // Assume renewal updates `UpdatedAt`
-        LeaseDetails = leases.Select(l => new LeaseSummaryDto
-        {
-            TenantName = l.Tenant.FullName,
-            UnitNumber = l.Tenant.House.HouseNumber,
-            StartDate = l.StartDate,
-            EndDate = l.EndDate,
-            MonthlyRent = l.Tenant.House.Rent,
-            Status = l.EndDate > now ? "Active" : "Expired"
-        }).ToList()
-    };
+	// Generate report
+	var report = new LeaseReportDto
+	{
+		GeneratedDate = now,
+		PropertyAddress = propertyAddress,
+		ActiveLeases = leases.Count(l => l.EndDate > now),
+		ExpiringLeases = leases.Count(l => l.EndDate <= now.AddMonths(2) && l.EndDate > now),
+		RenewedLeases = leases.Count(l => l.UpdatedAt.HasValue), // Assume renewal updates `UpdatedAt`
+		LeaseDetails = leases.Select(l => new LeaseSummaryDto
+		{
+			TenantName = l.Tenant.FullName,
+			UnitNumber = l.Tenant.House.HouseNumber,
+			StartDate = l.StartDate,
+			EndDate = l.EndDate,
+			MonthlyRent = l.Tenant.House.Rent,
+			Status = l.EndDate > now ? "Active" : "Expired"
+		}).ToList()
+	};
 
-    return report;
+	return report;
 }
 
 

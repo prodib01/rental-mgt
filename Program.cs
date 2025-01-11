@@ -20,6 +20,7 @@ builder.Logging.AddDebug();
 // Add services to the container.
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());  // Changed this line
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor(); 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<RentalManagementContext>();
 builder.Services.AddScoped<ILandlordDashboardService, LandlordDashboardService>();
