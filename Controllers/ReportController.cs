@@ -13,84 +13,99 @@ using Microsoft.EntityFrameworkCore;
 namespace RentalManagementSystem.Controllers
 {
 	[Authorize]
-[Route("Landlord/Reports")]
-public class ReportsController : Controller
-{
-	private readonly IReportService _reportService;
-	private readonly RentalManagementContext _context;
-
-	public ReportsController(
-		IReportService reportService,
-		RentalManagementContext context)
+	[Route("Landlord/Reports")]
+	public class ReportsController : Controller
 	{
-		_reportService = reportService;
-		_context = context;
-	}
+		private readonly IReportService _reportService;
+		private readonly RentalManagementContext _context;
+		private readonly ILogger<AddTenantsController> _logger;
 
-	public async Task<IActionResult> Index()
-	{
-		var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-		if (!int.TryParse(userIdStr, out var userId))
+		public ReportsController(
+			IReportService reportService,
+			RentalManagementContext context, ILogger<AddTenantsController> logger)
 		{
-			return Unauthorized();
+			_reportService = reportService;
+			_context = context;
+			_logger = logger;
 		}
 
-var properties = await _context.Properties
-    .Where(p => p.UserId == userId)
-    .Select(p => new SelectListItem
-    {
-        Value = p.Id.ToString(),
-        Text = p.Address
-    })
-    .ToListAsync();
+		public async Task<IActionResult> Index()
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!int.TryParse(userIdStr, out var userId))
+			{
+				return Unauthorized();
+			}
 
-var viewModel = new ReportIndexViewModel
-{
-    Properties = properties
-};
+			var properties = await _context.Properties
+				.Where(p => p.UserId == userId)
+				.Select(p => new SelectListItem
+				{
+					Value = p.Id.ToString(),
+					Text = p.Address
+				})
+				.ToListAsync();
+
+			var viewModel = new ReportIndexViewModel
+			{
+				Properties = properties
+			};
 
 
-		return View("~/Views/Landlord/Reports.cshtml", viewModel);
-	}
+			return View("~/Views/Landlord/Reports.cshtml", viewModel);
+		}
 
 		[HttpPost("GenerateReport")]
 		public async Task<IActionResult> GenerateReport([FromBody] ReportFilterViewModel filter)
 		{
-			if (!ModelState.IsValid)
+			try
 			{
-				return BadRequest(ModelState);
+				_logger.LogInformation($"Received report request for type: {filter?.ReportType}");
+
+				if (!ModelState.IsValid)
+				{
+					_logger.LogWarning("Invalid model state: " + string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+					return BadRequest(ModelState);
+				}
+
+				var filterDto = new ReportFilterDto
+				{
+					StartDate = filter.StartDate,
+					EndDate = filter.EndDate,
+					PropertyId = filter.PropertyId,
+					HouseId = filter.HouseId,
+					ReportType = filter.ReportType
+				};
+
+				_logger.LogInformation($"Processing report with filter: PropertyId={filterDto.PropertyId}, StartDate={filterDto.StartDate}, EndDate={filterDto.EndDate}");
+
+				object reportData = null;
+
+				switch (filter.ReportType.ToLower())
+				{
+					case "financial":
+						reportData = await _reportService.GenerateFinancialReportAsync(filterDto);
+						break;
+					case "occupancy":
+						reportData = await _reportService.GenerateOccupancyReportAsync(filterDto);
+						break;
+					case "maintenance":
+						reportData = await _reportService.GenerateMaintenanceReportAsync(filterDto);
+						break;
+					case "lease":
+						reportData = await _reportService.GenerateLeaseReportAsync(filterDto);
+						break;
+					default:
+						return BadRequest("Invalid report type");
+				}
+
+				return Json(reportData);
 			}
-
-			var filterDto = new ReportFilterDto
+			catch (Exception ex)
 			{
-				StartDate = filter.StartDate,
-				EndDate = filter.EndDate,
-				PropertyId = filter.PropertyId,
-				HouseId = filter.HouseId,
-				ReportType = filter.ReportType
-			};
-
-			object reportData = null;
-
-			switch (filter.ReportType.ToLower())
-			{
-				case "financial":
-					reportData = await _reportService.GenerateFinancialReportAsync(filterDto);
-					break;
-				case "occupancy":
-					reportData = await _reportService.GenerateOccupancyReportAsync(filterDto);
-					break;
-				case "maintenance":
-					reportData = await _reportService.GenerateMaintenanceReportAsync(filterDto);
-					break;
-				case "lease":
-					reportData = await _reportService.GenerateLeaseReportAsync(filterDto);
-					break;
-				default:
-					return BadRequest("Invalid report type");
+				_logger.LogError(ex, "Error generating report");
+				return StatusCode(500, "An error occurred while generating the report");
 			}
-
-			return Json(reportData);
 		}
 
 		[HttpPost("ExportReport")]

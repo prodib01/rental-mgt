@@ -1,8 +1,10 @@
 @model RentalManagementSystem.ViewModels.ReportIndexViewModel
 @{
+    ViewData["Title"] = "Reports";
     Layout = "_LandlordLayout";
 }
 
+<!-- Reports Dashboard -->
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -10,6 +12,7 @@
         </div>
         <div class="card-body">
             <div class="row">
+                <!-- Financial Report Card -->
                 <div class="col-md-3 mb-4">
                     <div class="card h-100 cursor-pointer report-card" data-report-type="financial" data-bs-toggle="modal" data-bs-target="#reportModal">
                         <div class="card-body text-center">
@@ -19,6 +22,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Occupancy Report Card -->
                 <div class="col-md-3 mb-4">
                     <div class="card h-100 cursor-pointer report-card" data-report-type="occupancy" data-bs-toggle="modal" data-bs-target="#reportModal">
                         <div class="card-body text-center">
@@ -28,6 +33,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Maintenance Report Card -->
                 <div class="col-md-3 mb-4">
                     <div class="card h-100 cursor-pointer report-card" data-report-type="maintenance" data-bs-toggle="modal" data-bs-target="#reportModal">
                         <div class="card-body text-center">
@@ -37,6 +44,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Lease Report Card -->
                 <div class="col-md-3 mb-4">
                     <div class="card h-100 cursor-pointer report-card" data-report-type="lease" data-bs-toggle="modal" data-bs-target="#reportModal">
                         <div class="card-body text-center">
@@ -104,7 +113,7 @@
     </div>
 </div>
 
-
+@section Styles {
     <style>
         .cursor-pointer {
             cursor: pointer;
@@ -119,27 +128,36 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
     </style>
-
+}
 
 @section Scripts {
+    <!-- Add these script references in your _Layout.cshtml if not already present -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/your-font-awesome-kit.js"></script>
+
     <script>
         $(document).ready(function() {
+            console.log("Document ready");
             let currentReportType = '';
 
-            // Debug logging
-            console.log('Script loaded');
+            // Test jQuery
+            if (typeof jQuery != 'undefined') {
+                console.log("jQuery is loaded");
+            } else {
+                console.log("jQuery is not loaded");
+            }
 
-            // Report card click handler
-            $('.report-card').on('click', function() {
+            // Simple alert to test if JavaScript is running
+            $('.report-card').click(function() {
+                alert("Report card clicked");
                 currentReportType = $(this).data('report-type');
-                console.log('Selected report type:', currentReportType);
-                $('#reportModalLabel').text(`Generate ${currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1)} Report`);
+                console.log("Selected report type:", currentReportType);
             });
 
-            // Generate report button click handler
-            $('#generateReport').on('click', function(e) {
+            $('#generateReport').click(function(e) {
+                alert("Generate button clicked");
                 e.preventDefault();
-                console.log('Generate report clicked');
                 
                 if (!currentReportType) {
                     alert('Please select a report type');
@@ -148,12 +166,12 @@
 
                 const filter = {
                     reportType: currentReportType,
-                    startDate: $('#startDate').val(),
-                    endDate: $('#endDate').val(),
+                    startDate: $('#startDate').val() || null,
+                    endDate: $('#endDate').val() || null,
                     propertyId: $('#propertyId').val() ? parseInt($('#propertyId').val()) : null
                 };
 
-                console.log('Sending request with filter:', filter);
+                console.log("Sending request with filter:", filter);
 
                 $.ajax({
                     url: '/Landlord/Reports/GenerateReport',
@@ -161,195 +179,18 @@
                     contentType: 'application/json',
                     data: JSON.stringify(filter),
                     success: function(data) {
-                        console.log('Report generated successfully:', data);
-                        displayReport(data);
+                        console.log("Success:", data);
+                        alert("Report generated successfully!");
+                        // Handle the response data here
                     },
                     error: function(xhr, status, error) {
-                        console.error('Error generating report:', error);
-                        alert('Error generating report: ' + error);
+                        console.log("Error:", error);
+                        console.log("Status:", status);
+                        console.log("Response:", xhr.responseText);
+                        alert("Error generating report!");
                     }
                 });
             });
-
-
-    // Add display functions for different report types
-    function displayFinancialReport(data) {
-        const content = $('#reportContent');
-        content.html(`
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card bg-primary text-white stat-card">
-                        <div class="card-body">
-                            <h5>Total Revenue</h5>
-                            <h3>${formatCurrency(data.totalRevenue)}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card bg-success text-white stat-card">
-                        <div class="card-body">
-                            <h5>Net Income</h5>
-                            <h3>${formatCurrency(data.netIncome)}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Property</th>
-                            <th>Tenant</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.payments.map(payment => `
-                            <tr>
-                                <td>${formatDate(payment.date)}</td>
-                                <td>${formatCurrency(payment.amount)}</td>
-                                <td>${payment.propertyAddress}</td>
-                                <td>${payment.tenantName}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `);
-    }
-
-    function displayOccupancyReport(data) {
-        const content = $('#reportContent');
-        content.html(`
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card bg-info text-white stat-card">
-                        <div class="card-body">
-                            <h5>Total Units</h5>
-                            <h3>${data.totalUnits}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-success text-white stat-card">
-                        <div class="card-body">
-                            <h5>Occupied Units</h5>
-                            <h3>${data.occupiedUnits}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-warning text-white stat-card">
-                        <div class="card-body">
-                            <h5>Vacancy Rate</h5>
-                            <h3>${formatPercentage(100 - data.occupancyRate)}%</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Unit Number</th>
-                            <th>Status</th>
-                            <th>Tenant</th>
-                            <th>Lease End Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.unitStatus.map(unit => `
-                            <tr>
-                                <td>${unit.unitNumber}</td>
-                                <td>${unit.isOccupied ? '<span class="badge bg-success">Occupied</span>' : '<span class="badge bg-warning">Vacant</span>'}</td>
-                                <td>${unit.tenantName || '-'}</td>
-                                <td>${unit.leaseEndDate ? formatDate(unit.leaseEndDate) : '-'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `);
-    }
-
-    // Helper functions
-    function formatCurrency(amount) {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-    }
-
-    function formatDate(date) {
-        return new Date(date).toLocaleDateString();
-    }
-
-    function formatPercentage(value) {
-        return value.toFixed(1);
-    }
-
-    function displayReport(data) {
-        const content = $('#reportContent');
-        content.empty();
-
-        switch(currentReportType) {
-            case 'financial':
-                displayFinancialReport(data);
-                break;
-            case 'occupancy':
-                displayOccupancyReport(data);
-                break;
-            case 'maintenance':
-                displayMaintenanceReport(data);
-                break;
-            case 'lease':
-                displayLeaseReport(data);
-                break;
-        }
-    }
-});
-
-    // Export PDF button click handler
-     $('#exportExcel, #exportPdf').on('click', function(e) {
-                e.preventDefault();
-                console.log('Export button clicked');
-                
-                const format = $(this).attr('id') === 'exportExcel' ? 'excel' : 'pdf';
-                const request = {
-                    filter: {
-                        reportType: currentReportType,
-                        startDate: $('#startDate').val(),
-                        endDate: $('#endDate').val(),
-                        propertyId: $('#propertyId').val() ? parseInt($('#propertyId').val()) : null
-                    },
-                    format: format
-                };
-
-                console.log('Sending export request:', request);
-
-                $.ajax({
-                    url: '/Landlord/Reports/ExportReport',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(request),
-                    xhrFields: {
-                        responseType: 'blob'
-                    },
-                    success: function(blob) {
-                        console.log('Export successful');
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${currentReportType}-report.${format}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error exporting report:', error);
-                        alert('Error exporting report: ' + error);
-                    }
-                });
-            });
-    }
+        });
     </script>
 }
