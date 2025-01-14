@@ -54,9 +54,11 @@ namespace RentalManagementSystem.Services
 				.Where(p => p.UserId == parsedUserId && p.PaymentStatus == "Pending")
 				.Select(p => new PendingBillsViewModel
 				{
-					BillType = p.PaymentMethod,
+					BillType = p.PaymentType,
+					PaymentMethod = p.PaymentMethod,
 					Amount = p.Amount,
 					DueDate = p.PaymentDate
+					
 				})
 				.ToListAsync();
 
