@@ -81,7 +81,8 @@
                             <h6 class="text-muted mb-2">Monthly Rent</h6>
                             <h3 class="fw-bold mb-2">$@Model.Rent.ToString("N2")</h3>
                             <p class="mb-0 text-muted">
-                                <small><i class="fas fa-map-marker-alt me-1"></i>@Model.HouseNumber @Model.StreetName</small>
+                                <small><i class="fas fa-map-marker-alt me-1"></i>@Model.HouseNumber
+                                    @Model.StreetName</small>
                             </p>
                         </div>
                         <div class="icon-container bg-primary bg-opacity-10">
@@ -99,10 +100,10 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-muted mb-2">Next Payment</h6>
-                            <h3 class="fw-bold mb-2">5 Days</h3>
+                            <h3 class="fw-bold mb-2">@Model.DaysUntilNextPayment Days</h3>
                             <p class="mb-0 text-success">
                                 <i class="fas fa-clock me-1"></i>
-                                <small>Due on May 1st</small>
+                                <small>Due on @Model.NextPaymentDueDate.ToString("MMM d")</small>
                             </p>
                         </div>
                         <div class="icon-container bg-success bg-opacity-10">
@@ -141,7 +142,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-muted mb-2">Documents</h6>
-                            <h3 class="fw-bold mb-2">5</h3>
+                            <h3 class="fw-bold mb-2">@Model.DocumentsCount</h3>
                             <p class="mb-0 text-info">
                                 <i class="fas fa-file me-1"></i>
                                 <small>Available</small>
