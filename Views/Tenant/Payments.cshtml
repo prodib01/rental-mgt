@@ -130,6 +130,7 @@
                     <table class="table table-hover payment-table">
                         <thead>
                             <tr>
+                                <th>Payment Type</th>
                                 <th>Amount</th>
                                 <th>Payment Date</th>
                                 <th>Method</th>
@@ -141,6 +142,9 @@
                             @foreach (var payment in Model.Payments)
                             {
                                 <tr>
+                                    <td>
+                                        <strong>@payment.PaymentType</strong>
+                                    </td>
                                     <td>
                                         <strong>$@payment.Amount.ToString("N2")</strong>
                                     </td>
@@ -194,8 +198,25 @@
                         }
 
                         <div class="mb-3">
+                            <label for="PaymentType" class="form-label">Payment Type</label>
+                            <select class="form-select" id="PaymentType" name="PaymentType" required
+                                onchange="updateAmount()">
+                                <option value="">Select payment type</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Utility">Utility</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a payment type.</div>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label">House Number</label>
                             <input type="text" class="form-control bg-light" value="@houseNumber" readonly />
+                        </div>
+
+                        <div id="utilityBreakdown" class="mb-3 d-none">
+                            <label class="form-label">Utility Breakdown</label>
+                            <div id="utilityBreakdown" style="display: none;" class="mt-3 mb-3">
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -203,7 +224,7 @@
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" class="form-control" id="Amount" name="Amount" required step="0.01"
-                                    min="0">
+                                    min="0" readonly>
                                 <div class="invalid-feedback">Please enter a valid amount.</div>
                             </div>
                         </div>
@@ -275,8 +296,47 @@
     })()
 
     // Set default date to today
+    // Add this script to your Payments.cshtml view
     document.addEventListener('DOMContentLoaded', function () {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('PaymentDate').value = today;
+        const paymentTypeSelect = document.getElementById('PaymentType');
+        const submitButton = document.querySelector('button[type="submit"]');
+        const messageDiv = document.getElementById('paymentMessage') || createMessageDiv();
+
+        async function checkPaymentAvailability(paymentType) {
+            try {
+                const response = await fetch(`/Tenant/Payments/CheckPaymentAvailability?paymentType=${paymentType}`);
+                const data = await response.json();
+
+                if (!data.available) {
+                    messageDiv.textContent = data.message;
+                    messageDiv.style.display = 'block';
+                    messageDiv.className = 'alert alert-warning';
+                    submitButton.disabled = true;
+                } else {
+                    messageDiv.style.display = 'none';
+                    submitButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error checking payment availability:', error);
+            }
+        }
+
+        function createMessageDiv() {
+            const div = document.createElement('div');
+            div.id = 'paymentMessage';
+            div.className = 'alert alert-warning';
+            div.style.display = 'none';
+            paymentTypeSelect.parentNode.insertBefore(div, paymentTypeSelect.nextSibling);
+            return div;
+        }
+
+        if (paymentTypeSelect) {
+            paymentTypeSelect.addEventListener('change', function () {
+                const selectedType = this.value;
+                if (selectedType) {
+                    checkPaymentAvailability(selectedType);
+                }
+            });
+        }
     });
 </script>

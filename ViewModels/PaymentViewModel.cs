@@ -31,8 +31,4 @@ namespace RentalManagementSystem.ViewModels
 		public string StatusMessage { get; set; }
 	}
 
-
-
-
-
 }
