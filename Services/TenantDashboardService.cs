@@ -10,7 +10,7 @@ namespace RentalManagementSystem.Services
 {
 	public interface ITenantDashboardService
 	{
-		Task<TenantDashboardViewModel> GetDashboardDataAsync(string userId);
+		Task<TenantDashboardViewModel> GetDashboardDataAsync(int userId);
 	}
 
 	public class TenantDashboardService : ITenantDashboardService
@@ -22,18 +22,12 @@ namespace RentalManagementSystem.Services
 			_context = context;
 		}
 
-		public async Task<TenantDashboardViewModel> GetDashboardDataAsync(string userId)
+		public async Task<TenantDashboardViewModel> GetDashboardDataAsync(int userId) // Changed from string to int
 		{
-			// Attempt to parse userId as an integer
-			if (!int.TryParse(userId, out int parsedUserId))
-			{
-				throw new Exception("Invalid user ID format");
-			}
-
-			// Fetch tenant and related house details
+			// Remove the TryParse since we're already getting an int
 			var tenant = await _context.Users
 				.Include(u => u.House)
-				.FirstOrDefaultAsync(u => u.Id == parsedUserId);
+				.FirstOrDefaultAsync(u => u.Id == userId);
 
 			if (tenant == null)
 			{
@@ -47,24 +41,23 @@ namespace RentalManagementSystem.Services
 			}
 
 			// Calculate next payment details
-			var nextPaymentInfo = await CalculateNextPaymentAsync(parsedUserId);
+			var nextPaymentInfo = await CalculateNextPaymentAsync(userId); // This already expects an int
 
 			// Fetch pending bills
 			var pendingBills = await _context.Payments
-				.Where(p => p.UserId == parsedUserId && p.PaymentStatus == "Pending")
+				.Where(p => p.UserId == userId && p.PaymentStatus == "Pending")
 				.Select(p => new PendingBillsViewModel
 				{
 					BillType = p.PaymentType,
 					PaymentMethod = p.PaymentMethod,
 					Amount = p.Amount,
 					DueDate = p.PaymentDate
-					
 				})
 				.ToListAsync();
 
 			// Fetch active requests
 			var activeRequests = await _context.Requests
-				.Where(r => r.TenantId == parsedUserId && r.Status == RequestStatus.InProgress)
+				.Where(r => r.TenantId == userId && r.Status == RequestStatus.InProgress)
 				.Select(r => new ActiveRequestViewModel
 				{
 					RequestType = r.Title,
@@ -75,7 +68,7 @@ namespace RentalManagementSystem.Services
 
 			// Count documents
 			var documentsCount = await _context.LeaseDocuments
-				.CountAsync(d => d.Lease.TenantId == parsedUserId);
+				.CountAsync(d => d.Lease.TenantId == userId);
 
 			// Build the dashboard view model
 			return new TenantDashboardViewModel
@@ -93,26 +86,22 @@ namespace RentalManagementSystem.Services
 
 		private async Task<(DateTime DueDate, int DaysRemaining)> CalculateNextPaymentAsync(int userId)
 		{
-			// Get the last payment date
+			// Method already accepts int, no changes needed here
 			var lastPayment = await _context.Payments
 				.Where(p => p.UserId == userId && p.PaymentStatus == "Completed")
 				.OrderByDescending(p => p.PaymentDate)
 				.FirstOrDefaultAsync();
 
-			// Calculate next due date
 			DateTime nextDueDate;
 			if (lastPayment != null)
 			{
-				// Next payment is one month after the last payment
 				nextDueDate = lastPayment.PaymentDate.AddMonths(1);
 			}
 			else
 			{
-				// If no previous payments, set due date to the 1st of next month
 				nextDueDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(1);
 			}
 
-			// Calculate days remaining
 			int daysRemaining = (nextDueDate - DateTime.Now).Days;
 
 			return (nextDueDate, daysRemaining);

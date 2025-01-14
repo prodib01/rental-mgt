@@ -183,7 +183,6 @@
                                     <th scope="col">Amount</th>
                                     <th scope="col">Due Date</th>
                                     <th scope="col">Status</th>
-                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -201,12 +200,9 @@
                                         <td>
                                             <strong>$@bill.Amount.ToString("N2")</strong>
                                         </td>
-                                        <td>@bill.DueDate.ToShortDateString()</td>
+                                        <td>@bill.DueDate.ToString("MMM dd, yyyy")</td>
                                         <td>
                                             <span class="pending-badge">Pending</span>
-                                        </td>
-                                        <td>
-                                            <button class="btn pay-now-btn">Pay Now</button>
                                         </td>
                                     </tr>
                                 }
@@ -214,7 +210,9 @@
                         </table>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 </div>
+

@@ -14,6 +14,8 @@ public class TenantDashboardViewModel
 
 	public class PendingBillsViewModel
 	{
+		public int? HouseId { get; set; }
+		public string Description { get; set; }
 		public string PaymentMethod { get; set; }
 		public string BillType { get; set; }
 		public decimal Amount { get; set; }
