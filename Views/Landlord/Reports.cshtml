@@ -127,8 +127,18 @@
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        .table-responsive {
+            margin-top: 1rem;
+        }
+        .badge {
+            padding: 0.5em 1em;
+        }
+        .card-body h5 {
+            margin-bottom: 1rem;
+        }
     </style>
 }
+
 
 @section Scripts {
     <!-- Add these script references in your _Layout.cshtml if not already present -->
@@ -138,25 +148,18 @@
 
     <script>
         $(document).ready(function() {
-            console.log("Document ready");
             let currentReportType = '';
 
-            // Test jQuery
-            if (typeof jQuery != 'undefined') {
-                console.log("jQuery is loaded");
-            } else {
-                console.log("jQuery is not loaded");
-            }
-
-            // Simple alert to test if JavaScript is running
+            // Update current report type when a card is clicked
             $('.report-card').click(function() {
-                alert("Report card clicked");
                 currentReportType = $(this).data('report-type');
-                console.log("Selected report type:", currentReportType);
+                $('#reportModalLabel').text(`Generate ${currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1)} Report`);
+                // Clear previous report content
+                $('#reportContent').empty();
             });
 
+            // Generate Report
             $('#generateReport').click(function(e) {
-                alert("Generate button clicked");
                 e.preventDefault();
                 
                 if (!currentReportType) {
@@ -171,26 +174,339 @@
                     propertyId: $('#propertyId').val() ? parseInt($('#propertyId').val()) : null
                 };
 
-                console.log("Sending request with filter:", filter);
-
                 $.ajax({
                     url: '/Landlord/Reports/GenerateReport',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(filter),
                     success: function(data) {
-                        console.log("Success:", data);
-                        alert("Report generated successfully!");
-                        // Handle the response data here
+                        $('#reportContent').html(formatReportData(data, currentReportType));
                     },
                     error: function(xhr, status, error) {
-                        console.log("Error:", error);
-                        console.log("Status:", status);
-                        console.log("Response:", xhr.responseText);
-                        alert("Error generating report!");
+                        alert('Error generating report: ' + error);
                     }
                 });
             });
+
+            // Export to Excel
+            $('#exportExcel').click(function() {
+                exportReport('excel');
+            });
+
+            // Export to PDF
+            $('#exportPdf').click(function() {
+                exportReport('pdf');
+            });
+
+            function exportReport(format) {
+                if (!currentReportType) {
+                    alert('Please select a report type');
+                    return;
+                }
+
+                const request = {
+                    filter: {
+                        reportType: currentReportType,
+                        startDate: $('#startDate').val() || null,
+                        endDate: $('#endDate').val() || null,
+                        propertyId: $('#propertyId').val() ? parseInt($('#propertyId').val()) : null
+                    },
+                    format: format
+                };
+
+                // Create a form and submit it to trigger file download
+                const form = $('<form>')
+                    .attr('method', 'POST')
+                    .attr('action', '/Landlord/Reports/ExportReport');
+
+                $('<input>')
+                    .attr('type', 'hidden')
+                    .attr('name', 'request')
+                    .attr('value', JSON.stringify(request))
+                    .appendTo(form);
+
+                form.appendTo('body').submit().remove();
+            }
+
+            // Helper function to format currency
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', { 
+                    style: 'currency', 
+                    currency: 'USD' 
+                }).format(amount);
+            }
+
+            // Helper function to format date
+            function formatDate(dateString) {
+                return new Date(dateString).toLocaleDateString('en-US');
+            }
+
+            // Helper function to format report data
+            function formatReportData(data, reportType) {
+                let html = '<div class="card"><div class="card-body">';
+                
+                switch(reportType) {
+                    case 'financial':
+                        html += formatFinancialReport(data);
+                        break;
+                    case 'occupancy':
+                        html += formatOccupancyReport(data);
+                        break;
+                    case 'maintenance':
+                        html += formatMaintenanceReport(data);
+                        break;
+                    case 'lease':
+                        html += formatLeaseReport(data);
+                        break;
+                }
+                
+                html += '</div></div>';
+                return html;
+            }
+
+            function formatFinancialReport(data) {
+                let html = `
+                    <h4 class="mb-4">Financial Report Summary</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Property: ${data.propertyAddress}</h5>
+                                    <p>Period: ${formatDate(data.startDate)} - ${formatDate(data.endDate)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Financial Summary</h5>
+                                    <p>Total Revenue: ${formatCurrency(data.totalRevenue)}</p>
+                                    <p>Net Income: ${formatCurrency(data.netIncome)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (data.payments && data.payments.length > 0) {
+                    html += `
+                        <h5>Payment Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Tenant</th>
+                                        <th>Property</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.payments.forEach(payment => {
+                        html += `
+                            <tr>
+                                <td>${formatDate(payment.date)}</td>
+                                <td>${payment.tenantName}</td>
+                                <td>${payment.propertyAddress}</td>
+                                <td>${formatCurrency(payment.amount)}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                }
+
+                return html;
+            }
+
+            function formatOccupancyReport(data) {
+                let html = `
+                    <h4 class="mb-4">Occupancy Report Summary</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Property: ${data.propertyAddress}</h5>
+                                    <p>Generated Date: ${formatDate(data.generatedDate)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Occupancy Summary</h5>
+                                    <p>Total Units: ${data.totalUnits}</p>
+                                    <p>Occupied Units: ${data.occupiedUnits}</p>
+                                    <p>Vacant Units: ${data.vacantUnits}</p>
+                                    <p>Occupancy Rate: ${data.occupancyRate.toFixed(1)}%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (data.unitStatus && data.unitStatus.length > 0) {
+                    html += `
+                        <h5>Unit Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Unit Number</th>
+                                        <th>Status</th>
+                                        <th>Tenant</th>
+                                        <th>Lease Start</th>
+                                        <th>Lease End</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.unitStatus.forEach(unit => {
+                        html += `
+                            <tr>
+                                <td>${unit.unitNumber}</td>
+                                <td>${unit.isOccupied ? '<span class="badge bg-success">Occupied</span>' : '<span class="badge bg-danger">Vacant</span>'}</td>
+                                <td>${unit.tenantName || '-'}</td>
+                                <td>${unit.leaseStartDate ? formatDate(unit.leaseStartDate) : '-'}</td>
+                                <td>${unit.leaseEndDate ? formatDate(unit.leaseEndDate) : '-'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                }
+
+                return html;
+            }
+
+            function formatMaintenanceReport(data) {
+                let html = `
+                    <h4 class="mb-4">Maintenance Report Summary</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Property: ${data.propertyAddress}</h5>
+                                    <p>Period: ${formatDate(data.startDate)} - ${formatDate(data.endDate)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Request Summary</h5>
+                                    <p>Total Requests: ${data.totalRequests}</p>
+                                    <p>Resolved: ${data.resolvedRequests}</p>
+                                    <p>Pending: ${data.pendingRequests}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (data.requests && data.requests.length > 0) {
+                    html += `
+                        <h5>Request Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Unit</th>
+                                        <th>Property</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.requests.forEach(request => {
+                        const statusClass = request.status === 'Completed' ? 'bg-success' : 'bg-warning';
+                        html += `
+                            <tr>
+                                <td>${formatDate(request.createdAt)}</td>
+                                <td>${request.title}</td>
+                                <td><span class="badge ${statusClass}">${request.status}</span></td>
+                                <td>${request.priority}</td>
+                                <td>${request.unitNumber}</td>
+                                <td>${request.propertyAddress}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                }
+
+                return html;
+            }
+
+            function formatLeaseReport(data) {
+                let html = `
+                    <h4 class="mb-4">Lease Report Summary</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Property: ${data.propertyAddress}</h5>
+                                    <p>Generated Date: ${formatDate(data.generatedDate)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5>Lease Summary</h5>
+                                    <p>Active Leases: ${data.activeLeases}</p>
+                                    <p>Expiring Soon: ${data.expiringLeases}</p>
+                                    <p>Renewed: ${data.renewedLeases}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (data.leaseDetails && data.leaseDetails.length > 0) {
+                    html += `
+                        <h5>Lease Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Tenant</th>
+                                        <th>Unit</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Monthly Rent</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.leaseDetails.forEach(lease => {
+                        const statusClass = lease.status === 'Active' ? 'bg-success' : 'bg-danger';
+                        html += `
+                            <tr>
+                                <td>${lease.tenantName}</td>
+                                <td>${lease.unitNumber}</td>
+                                <td>${formatDate(lease.startDate)}</td>
+                                <td>${formatDate(lease.endDate)}</td>
+                                <td>${formatCurrency(lease.monthlyRent)}</td>
+                                <td><span class="badge ${statusClass}">${lease.status}</span></td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                }
+
+                return html;
+            }
         });
     </script>
 }

@@ -2,30 +2,31 @@ using RentalManagementSystem.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using RentalManagementSystem.Services;
 
+[Authorize]
 public class TenantController : Controller
 {
-    public IActionResult Dashboard()
-    {
-        var model = GetTenantDashboardData();
-        return View(model);
-    }
+	private readonly ITenantDashboardService _tenantDashboardService;
 
-    private TenantDashboardViewModel GetTenantDashboardData()
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // userId is a string, so no need for .Value here
-        return new TenantDashboardViewModel
-        {
-            HouseNumber = 123, // Change this from "123" to 123 (int)
-            StreetName = "Main Street",
-            Rent = 1200,
-            PendingBills = new List<PendingBillsViewModel>
-        {
-            new PendingBillsViewModel { BillType = "Rent", Amount = 1200, DueDate = DateTime.Now.AddDays(15) },
-            new PendingBillsViewModel { BillType = "Electricity", Amount = 50, DueDate = DateTime.Now.AddDays(30) },
-            new PendingBillsViewModel { BillType = "Water", Amount = 20, DueDate = DateTime.Now.AddDays(45) }
-        }
-        };
-    }
+	public TenantController(ITenantDashboardService tenantDashboardService)
+	{
+		_tenantDashboardService = tenantDashboardService;
+	}
 
+	public async Task<IActionResult> Dashboard()
+	{
+		try
+		{
+			string userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from claims
+			var dashboardData = await _tenantDashboardService.GetDashboardDataAsync(userId);
+			return View(dashboardData); // Ensure dashboardData is passed to the view
+		}
+		catch (Exception ex)
+		{
+			// Handle exceptions and log if necessary
+			ViewBag.Error = ex.Message;
+			return View("Error");
+		}
+	}
 }

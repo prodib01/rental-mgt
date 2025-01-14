@@ -28,6 +28,7 @@ builder.Services.AddScoped<ILeaseDocumentService, LeaseDocumentService>();
 builder.Services.AddScoped<IUtilityService, UtilityService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ITenantDashboardService, TenantDashboardService>();
 
 // Add session support
 builder.Services.AddSession(options =>
