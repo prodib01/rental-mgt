@@ -156,9 +156,17 @@
             event.preventDefault();
 
             const formData = new FormData(event.target);
-            const profileData = Object.fromEntries(formData.entries());
+            const bankSelect = document.getElementById('bank');
+            const bankId = bankSelect.value;
 
-            console.log("Profile data being sent:", profileData); // Add this line for debugging
+            const profileData = {
+                bank: bankId,
+                accountNumber: formData.get('accountNumber'),
+                accountHolderName: formData.get('accountHolderName'),
+                numberForPayments: formData.get('numberForPayments')
+            };
+
+            console.log('Sending profile data:', profileData); // Debug log
 
             try {
                 const response = await fetch('/Landlord/Profile/api', {
@@ -169,13 +177,16 @@
                     body: JSON.stringify(profileData)
                 });
 
-                if (response.ok) {
-                    window.location.reload();
-                } else {
+                if (!response.ok) {
                     const error = await response.text();
+                    console.error('Server response:', error); // Debug log
                     alert('Error creating profile: ' + error);
+                    return;
                 }
+
+                window.location.reload();
             } catch (error) {
+                console.error('Fetch error:', error); // Debug log
                 alert('Error creating profile: ' + error.message);
             }
         }

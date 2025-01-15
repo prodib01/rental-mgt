@@ -22,14 +22,15 @@ public class RentalManagementContext : DbContext
 	public DbSet<Utility> Utilities { get; set; }
 	public DbSet<UtilityReading> UtilityReadings { get; set; }
 	public DbSet<Request> Requests { get; set; }
-		public DbSet<FinancialReport> FinancialReports { get; set; }
+	public DbSet<FinancialReport> FinancialReports { get; set; }
 	public DbSet<OccupancyReport> OccupancyReports { get; set; }
 	public DbSet<MaintenanceReport> MaintenanceReports { get; set; }
 	public DbSet<LeaseReport> LeaseReports { get; set; }
-	
+
 	public DbSet<Profile> Profiles { get; set; }
-	
+
 	public DbSet<Bank> Banks { get; set; }
+	public DbSet<ContactInfo> ContactInfos { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -67,10 +68,10 @@ public class RentalManagementContext : DbContext
 			entity.Property(e => e.Rent)
 				.HasColumnType("decimal(18,2)")
 				.IsRequired();
-				
+
 			entity.Property(e => e.VacantSince)
 				.HasColumnType("datetime2");
-					
+
 
 			// Relationship with Property
 			entity.HasOne(h => h.Property)
@@ -78,6 +79,16 @@ public class RentalManagementContext : DbContext
 				.HasForeignKey(h => h.PropertyId)
 				.OnDelete(DeleteBehavior.NoAction)
 				.IsRequired();
+		});
+
+		modelBuilder.Entity<Bank>(entity =>
+
+		{
+			entity.ToTable("Banks");
+
+			entity.HasOne(b => b.Contact_Info)
+		.WithOne(c => c.Bank)
+		.HasForeignKey<ContactInfo>(c => c.BankId);
 		});
 
 		// Configure User entity
@@ -239,7 +250,7 @@ public class RentalManagementContext : DbContext
 
 			entity.Property(e => e.Consumption)
 				.IsRequired(); // Consumption is required
-				
+
 			entity.Property(e => e.IsPaid)
 				.IsRequired(); // IsPaid is required	
 
@@ -258,83 +269,83 @@ public class RentalManagementContext : DbContext
 				.HasForeignKey(e => e.TenantId)
 				.OnDelete(DeleteBehavior.Cascade); // Delete Utilities when Tenant is deleted	
 		});
-		
-	modelBuilder.Entity<Request>(entity =>
-	{
-		entity.ToTable("Requests");
 
-	
-		entity.HasKey(e => e.Id);
-
-		// Configure TenantId as a foreign key
-			entity.HasOne(e => e.Tenant)  // Each Utility has one Tenant
-				.WithMany() // A Tenant can have multiple Utilities
-				.HasForeignKey(e => e.TenantId)
-				.OnDelete(DeleteBehavior.Cascade);
-
-		// Configure Title property
-		entity.Property(e => e.Title)
-			.IsRequired()
-			.HasMaxLength(100);
-
-		// Configure Description property
-		entity.Property(e => e.Description)
-			.IsRequired()
-			.HasMaxLength(500);
-
-		// Configure Priority as an enum stored as a string
-		entity.Property(e => e.Priority)
-			.IsRequired()
-			.HasConversion<string>()
-			.HasMaxLength(50);
-
-		// Configure Status as an enum stored as a string
-		entity.Property(e => e.Status)
-			.IsRequired()
-			.HasConversion<string>()
-			.HasMaxLength(50);
-
-		// Configure CreatedAt with a default value
-		entity.Property(e => e.CreatedAt)
-			.HasDefaultValueSql("GETUTCDATE()")
-			.ValueGeneratedOnAdd();
-
-		// Configure UpdatedAt to update automatically
-		entity.Property(e => e.UpdatedAt)
-			.ValueGeneratedOnUpdate();
-
-		// Optional: Configure CompletedAt as nullable
-		entity.Property(e => e.CompletedAt)
-			.IsRequired(false);
-
-		// Configure LandlordNotes as nullable with a maximum length
-		entity.Property(e => e.LandlordNotes)
-			.IsRequired(false)
-			.HasMaxLength(1000);
-	});
-	
-	modelBuilder.Entity<FinancialReport>(entity =>
+		modelBuilder.Entity<Request>(entity =>
 		{
-			entity.ToTable("FinancialReports");
-			entity.HasKey(fr => fr.Id);
+			entity.ToTable("Requests");
 
-			entity.Property(fr => fr.TotalRevenue)
-				.HasColumnType("decimal(18,2)")
-				.IsRequired();
 
-			entity.Property(fr => fr.TotalExpenses)
-				.HasColumnType("decimal(18,2)")
-				.IsRequired();
+			entity.HasKey(e => e.Id);
 
-			entity.Property(fr => fr.NetIncome)
-				.HasColumnType("decimal(18,2)")
-				.IsRequired();
+			// Configure TenantId as a foreign key
+			entity.HasOne(e => e.Tenant)  // Each Utility has one Tenant
+			.WithMany() // A Tenant can have multiple Utilities
+			.HasForeignKey(e => e.TenantId)
+			.OnDelete(DeleteBehavior.Cascade);
 
-			entity.HasOne(fr => fr.Property)
-				.WithMany()
-				.HasForeignKey(fr => fr.PropertyId)
-				.OnDelete(DeleteBehavior.NoAction);
+			// Configure Title property
+			entity.Property(e => e.Title)
+				.IsRequired()
+				.HasMaxLength(100);
+
+			// Configure Description property
+			entity.Property(e => e.Description)
+				.IsRequired()
+				.HasMaxLength(500);
+
+			// Configure Priority as an enum stored as a string
+			entity.Property(e => e.Priority)
+				.IsRequired()
+				.HasConversion<string>()
+				.HasMaxLength(50);
+
+			// Configure Status as an enum stored as a string
+			entity.Property(e => e.Status)
+				.IsRequired()
+				.HasConversion<string>()
+				.HasMaxLength(50);
+
+			// Configure CreatedAt with a default value
+			entity.Property(e => e.CreatedAt)
+				.HasDefaultValueSql("GETUTCDATE()")
+				.ValueGeneratedOnAdd();
+
+			// Configure UpdatedAt to update automatically
+			entity.Property(e => e.UpdatedAt)
+				.ValueGeneratedOnUpdate();
+
+			// Optional: Configure CompletedAt as nullable
+			entity.Property(e => e.CompletedAt)
+				.IsRequired(false);
+
+			// Configure LandlordNotes as nullable with a maximum length
+			entity.Property(e => e.LandlordNotes)
+				.IsRequired(false)
+				.HasMaxLength(1000);
 		});
+
+		modelBuilder.Entity<FinancialReport>(entity =>
+			{
+				entity.ToTable("FinancialReports");
+				entity.HasKey(fr => fr.Id);
+
+				entity.Property(fr => fr.TotalRevenue)
+					.HasColumnType("decimal(18,2)")
+					.IsRequired();
+
+				entity.Property(fr => fr.TotalExpenses)
+					.HasColumnType("decimal(18,2)")
+					.IsRequired();
+
+				entity.Property(fr => fr.NetIncome)
+					.HasColumnType("decimal(18,2)")
+					.IsRequired();
+
+				entity.HasOne(fr => fr.Property)
+					.WithMany()
+					.HasForeignKey(fr => fr.PropertyId)
+					.OnDelete(DeleteBehavior.NoAction);
+			});
 
 		modelBuilder.Entity<OccupancyReport>(entity =>
 		{

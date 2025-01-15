@@ -97,9 +97,6 @@ namespace RentalManagementSystem.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Contact_InfoId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Head_Office")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -117,9 +114,7 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Contact_InfoId");
-
-                    b.ToTable("Banks");
+                    b.ToTable("Banks", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.ContactInfo", b =>
@@ -129,6 +124,9 @@ namespace RentalManagementSystem.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BankId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -140,7 +138,10 @@ namespace RentalManagementSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ContactInfo");
+                    b.HasIndex("BankId")
+                        .IsUnique();
+
+                    b.ToTable("ContactInfos");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.FinancialReport", b =>
@@ -649,15 +650,15 @@ namespace RentalManagementSystem.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RentalManagementSystem.Models.Bank", b =>
+            modelBuilder.Entity("RentalManagementSystem.Models.ContactInfo", b =>
                 {
-                    b.HasOne("RentalManagementSystem.Models.ContactInfo", "Contact_Info")
-                        .WithMany()
-                        .HasForeignKey("Contact_InfoId")
+                    b.HasOne("RentalManagementSystem.Models.Bank", "Bank")
+                        .WithOne("Contact_Info")
+                        .HasForeignKey("RentalManagementSystem.Models.ContactInfo", "BankId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Contact_Info");
+                    b.Navigation("Bank");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.FinancialReport", b =>
@@ -818,6 +819,12 @@ namespace RentalManagementSystem.Migrations
             modelBuilder.Entity("Property", b =>
                 {
                     b.Navigation("Houses");
+                });
+
+            modelBuilder.Entity("RentalManagementSystem.Models.Bank", b =>
+                {
+                    b.Navigation("Contact_Info")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.FinancialReport", b =>

@@ -32,17 +32,32 @@ namespace RentalManagementSystem.Services
 			// Get the banks
 			var banks = await _bankService.LoadBanksAsync();
 
-			// Find the bank by ID
-			var bank = banks.FirstOrDefault(b => b.Id.ToString() == profileDTO.Bank);
+			// Debug logging
+			System.Diagnostics.Debug.WriteLine($"Received bank value: {profileDTO.Bank}");
+			System.Diagnostics.Debug.WriteLine($"Available banks: {string.Join(", ", banks.Select(b => $"{b.Id}"))}");
+
+			// Check if bank value is null or empty
+			if (string.IsNullOrEmpty(profileDTO.Bank))
+			{
+				throw new ArgumentException("Bank ID cannot be null or empty");
+			}
+
+			// Try to parse the bank ID
+			if (!int.TryParse(profileDTO.Bank, out int bankId))
+			{
+				throw new ArgumentException($"Could not parse '{profileDTO.Bank}' as a valid bank ID");
+			}
+
+			var bank = banks.FirstOrDefault(b => b.Id == bankId);
 			if (bank == null)
 			{
-				throw new ArgumentException("Invalid bank selected");
+				throw new ArgumentException($"No bank found with ID {bankId}");
 			}
 
 			var profile = new Profile
 			{
 				LandlordId = landlordId,
-				Bank = bank.Name,  // Store the bank name
+				Bank = bank.Name,
 				AccountNumber = profileDTO.AccountNumber,
 				AccountHolderName = profileDTO.AccountHolderName,
 				NumberForPayments = profileDTO.NumberForPayments

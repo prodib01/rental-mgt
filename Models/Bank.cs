@@ -10,6 +10,8 @@ namespace RentalManagementSystem.Models
 {
 	public class Bank
 	{
+		[Key]
+		[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 		public int Id { get; set; }
 		public string Name { get; set; }
 		public string Head_Office { get; set; }
@@ -20,13 +22,17 @@ namespace RentalManagementSystem.Models
 
 	public class ContactInfo
 	{
+		[Key]
+		[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 		public int Id { get; set; }
 		public string Phone { get; set; }
 		public string Email { get; set; }
+		public int BankId { get; set; }  // Add this foreign key property
+		public Bank Bank { get; set; }    // Navigation property
 	}
-	
+
 	public class BankRoot
-	
+
 	{
 		public List<Bank> Banks { get; set; }
 	}
