@@ -68,8 +68,7 @@
                             <option value="">Select a bank</option>
                             @foreach (var bank in banks)
                             {
-                                <option value="@bank.Id">@bank.BankName</option>
-
+                                <option value="@bank.Id.ToString()">@bank.Name</option>
                             }
                         </select>
                     </div>
@@ -98,6 +97,7 @@
 </div>
 
 <!-- Edit Profile Modal -->
+<!-- Edit Profile Modal -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -112,27 +112,33 @@
                         <label for="editBank" class="form-label">Bank</label>
                         <select class="form-select" id="editBank" name="bank" required>
                             <option value="">Select a bank</option>
-                            @foreach (var bank in banks)
+                            @foreach (var bank in Model.Banks)
                             {
-                               <option value="@bank.Id">@bank.Name</option>
-
+                                if (Model.Profile?.Bank == bank.Name)
+                                {
+                                    <option value="@bank.Id" selected>@bank.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@bank.Id">@bank.Name</option>
+                                }
                             }
                         </select>
                     </div>
                     <div class="mb-3">
                         <label for="editAccountNumber" class="form-label">Account Number</label>
                         <input type="text" class="form-control" id="editAccountNumber" name="accountNumber"
-                            value="@Model.Profile.AccountNumber" required>
+                            value="@(Model.Profile?.AccountNumber ?? "")" required>
                     </div>
                     <div class="mb-3">
                         <label for="editAccountHolderName" class="form-label">Account Holder Name</label>
                         <input type="text" class="form-control" id="editAccountHolderName" name="accountHolderName"
-                            value="@Model.Profile.AccountHolderName" required>
+                            value="@(Model.Profile?.AccountHolderName ?? "")" required>
                     </div>
                     <div class="mb-3">
                         <label for="editNumberForPayments" class="form-label">Payment Number</label>
                         <input type="text" class="form-control" id="editNumberForPayments" name="numberForPayments"
-                            value="@Model.Profile.NumberForPayments" required>
+                            value="@(Model.Profile?.NumberForPayments ?? "")" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -151,6 +157,8 @@
 
             const formData = new FormData(event.target);
             const profileData = Object.fromEntries(formData.entries());
+
+            console.log("Profile data being sent:", profileData); // Add this line for debugging
 
             try {
                 const response = await fetch('/Landlord/Profile/api', {
@@ -172,11 +180,21 @@
             }
         }
 
+
+
         async function updateProfile(event) {
             event.preventDefault();
 
             const formData = new FormData(event.target);
-            const profileData = Object.fromEntries(formData.entries());
+            const bankSelect = document.getElementById('editBank');
+            const bankName = bankSelect.options[bankSelect.selectedIndex].text;
+
+            const profileData = {
+                bank: bankName,
+                accountNumber: formData.get('accountNumber'),
+                accountHolderName: formData.get('accountHolderName'),
+                numberForPayments: formData.get('numberForPayments')
+            };
 
             try {
                 const response = await fetch('/Landlord/Profile/api', {

@@ -37,7 +37,7 @@ namespace RentalManagementSystem.Controllers
 			var viewModel = new ProfileViewModel
 			{
 				Profile = profile,
-				Banks = banks
+				Banks = banks ?? new List<Models.Bank>()
 			};
 
 			return View("~/Views/Landlord/Profile.cshtml", viewModel);
