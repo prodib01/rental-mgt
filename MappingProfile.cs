@@ -5,7 +5,7 @@ using RentalManagementSystem.ViewModels;
 
 namespace RentalManagementSystem
 {
-    public class MappingProfile : Profile
+    public class MappingProfile : AutoMapper.Profile // Explicitly reference AutoMapper's Profile
     {
         public MappingProfile()
         {

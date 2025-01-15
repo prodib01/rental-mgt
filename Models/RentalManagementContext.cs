@@ -26,6 +26,10 @@ public class RentalManagementContext : DbContext
 	public DbSet<OccupancyReport> OccupancyReports { get; set; }
 	public DbSet<MaintenanceReport> MaintenanceReports { get; set; }
 	public DbSet<LeaseReport> LeaseReports { get; set; }
+	
+	public DbSet<Profile> Profiles { get; set; }
+	
+	public DbSet<Bank> Banks { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -257,10 +261,9 @@ public class RentalManagementContext : DbContext
 		
 	modelBuilder.Entity<Request>(entity =>
 	{
-		// Set the table name
 		entity.ToTable("Requests");
 
-		// Configure primary key
+	
 		entity.HasKey(e => e.Id);
 
 		// Configure TenantId as a foreign key
@@ -311,68 +314,68 @@ public class RentalManagementContext : DbContext
 	});
 	
 	modelBuilder.Entity<FinancialReport>(entity =>
-        {
-            entity.ToTable("FinancialReports");
-            entity.HasKey(fr => fr.Id);
+		{
+			entity.ToTable("FinancialReports");
+			entity.HasKey(fr => fr.Id);
 
-            entity.Property(fr => fr.TotalRevenue)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
+			entity.Property(fr => fr.TotalRevenue)
+				.HasColumnType("decimal(18,2)")
+				.IsRequired();
 
-            entity.Property(fr => fr.TotalExpenses)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
+			entity.Property(fr => fr.TotalExpenses)
+				.HasColumnType("decimal(18,2)")
+				.IsRequired();
 
-            entity.Property(fr => fr.NetIncome)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
+			entity.Property(fr => fr.NetIncome)
+				.HasColumnType("decimal(18,2)")
+				.IsRequired();
 
-            entity.HasOne(fr => fr.Property)
-                .WithMany()
-                .HasForeignKey(fr => fr.PropertyId)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
+			entity.HasOne(fr => fr.Property)
+				.WithMany()
+				.HasForeignKey(fr => fr.PropertyId)
+				.OnDelete(DeleteBehavior.NoAction);
+		});
 
-        modelBuilder.Entity<OccupancyReport>(entity =>
-        {
-            entity.ToTable("OccupancyReports");
-            entity.HasKey(or => or.Id);
+		modelBuilder.Entity<OccupancyReport>(entity =>
+		{
+			entity.ToTable("OccupancyReports");
+			entity.HasKey(or => or.Id);
 
-            entity.Property(or => or.OccupancyRate)
-                .HasColumnType("decimal(5,2)")
-                .IsRequired();
+			entity.Property(or => or.OccupancyRate)
+				.HasColumnType("decimal(5,2)")
+				.IsRequired();
 
-            entity.HasOne(or => or.Property)
-                .WithMany()
-                .HasForeignKey(or => or.PropertyId)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
+			entity.HasOne(or => or.Property)
+				.WithMany()
+				.HasForeignKey(or => or.PropertyId)
+				.OnDelete(DeleteBehavior.NoAction);
+		});
 
-        modelBuilder.Entity<MaintenanceReport>(entity =>
-        {
-            entity.ToTable("MaintenanceReports");
-            entity.HasKey(mr => mr.Id);
+		modelBuilder.Entity<MaintenanceReport>(entity =>
+		{
+			entity.ToTable("MaintenanceReports");
+			entity.HasKey(mr => mr.Id);
 
-            entity.Property(mr => mr.TotalMaintenanceCost)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
+			entity.Property(mr => mr.TotalMaintenanceCost)
+				.HasColumnType("decimal(18,2)")
+				.IsRequired();
 
-            entity.HasOne(mr => mr.Property)
-                .WithMany()
-                .HasForeignKey(mr => mr.PropertyId)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
+			entity.HasOne(mr => mr.Property)
+				.WithMany()
+				.HasForeignKey(mr => mr.PropertyId)
+				.OnDelete(DeleteBehavior.NoAction);
+		});
 
-        modelBuilder.Entity<LeaseReport>(entity =>
-        {
-            entity.ToTable("LeaseReports");
-            entity.HasKey(lr => lr.Id);
+		modelBuilder.Entity<LeaseReport>(entity =>
+		{
+			entity.ToTable("LeaseReports");
+			entity.HasKey(lr => lr.Id);
 
-            entity.HasOne(lr => lr.Property)
-                .WithMany()
-                .HasForeignKey(lr => lr.PropertyId)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
+			entity.HasOne(lr => lr.Property)
+				.WithMany()
+				.HasForeignKey(lr => lr.PropertyId)
+				.OnDelete(DeleteBehavior.NoAction);
+		});
 
 	}
 

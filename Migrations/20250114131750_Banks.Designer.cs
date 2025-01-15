@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace RentalManagementSystem.Migrations
 {
     [DbContext(typeof(RentalManagementContext))]
-    partial class RentalManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20250114131750_Banks")]
+    partial class Banks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -87,60 +90,6 @@ namespace RentalManagementSystem.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Properties", (string)null);
-                });
-
-            modelBuilder.Entity("RentalManagementSystem.Models.Bank", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Contact_InfoId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Head_Office")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Website")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Year_Of_Establishment")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Contact_InfoId");
-
-                    b.ToTable("Banks");
-                });
-
-            modelBuilder.Entity("RentalManagementSystem.Models.ContactInfo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ContactInfo");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.FinancialReport", b =>
@@ -412,40 +361,6 @@ namespace RentalManagementSystem.Migrations
                     b.ToTable("Payments", (string)null);
                 });
 
-            modelBuilder.Entity("RentalManagementSystem.Models.Profile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AccountHolderName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AccountNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Bank")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("LandlordId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NumberForPayments")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LandlordId");
-
-                    b.ToTable("Profiles");
-                });
-
             modelBuilder.Entity("RentalManagementSystem.Models.Request", b =>
                 {
                     b.Property<int>("Id")
@@ -649,17 +564,6 @@ namespace RentalManagementSystem.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RentalManagementSystem.Models.Bank", b =>
-                {
-                    b.HasOne("RentalManagementSystem.Models.ContactInfo", "Contact_Info")
-                        .WithMany()
-                        .HasForeignKey("Contact_InfoId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Contact_Info");
-                });
-
             modelBuilder.Entity("RentalManagementSystem.Models.FinancialReport", b =>
                 {
                     b.HasOne("Property", "Property")
@@ -751,17 +655,6 @@ namespace RentalManagementSystem.Migrations
                     b.Navigation("House");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RentalManagementSystem.Models.Profile", b =>
-                {
-                    b.HasOne("User", "Landlord")
-                        .WithMany()
-                        .HasForeignKey("LandlordId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Landlord");
                 });
 
             modelBuilder.Entity("RentalManagementSystem.Models.Request", b =>

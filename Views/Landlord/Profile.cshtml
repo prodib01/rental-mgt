@@ -1,0 +1,201 @@
+@model RentalManagementSystem.ViewModels.ProfileViewModel
+
+@{
+    Layout = "_LandlordLayout";
+    var banks = Model.Banks;
+}
+
+<div class="container mt-4">
+    <!-- Main Profile Card -->
+    <div class="card shadow-sm" style="border-radius: 15px;">
+        <div class="card-header bg-primary text-white" style="border-radius: 15px 15px 0 0;">
+            <h3 class="mb-0">Profile Management</h3>
+        </div>
+        <div class="card-body">
+            @if (Model.Profile == null)
+            {
+                <div class="text-center py-4">
+                    <h5>No profile found</h5>
+                    <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal"
+                        data-bs-target="#createProfileModal">
+                        Create Profile
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Bank Details</h5>
+                        <dl class="row">
+                            <dt class="col-sm-4">Bank Name</dt>
+                            <dd class="col-sm-8">@Model.Profile.Bank</dd>
+
+                            <dt class="col-sm-4">Account Number</dt>
+                            <dd class="col-sm-8">@Model.Profile.AccountNumber</dd>
+
+                            <dt class="col-sm-4">Account Holder</dt>
+                            <dd class="col-sm-8">@Model.Profile.AccountHolderName</dd>
+
+                            <dt class="col-sm-4">Payment Number</dt>
+                            <dd class="col-sm-8">@Model.Profile.NumberForPayments</dd>
+                        </dl>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    Edit Profile
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Create Profile Modal -->
+<div class="modal fade" id="createProfileModal" tabindex="-1" aria-labelledby="createProfileModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="createProfileModalLabel">Create Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form id="createProfileForm" onsubmit="return submitProfile(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="bank" class="form-label">Bank</label>
+                        <select class="form-select" id="bank" name="bank" required>
+                            <option value="">Select a bank</option>
+                            @foreach (var bank in banks)
+                            {
+                                <option value="@bank.Id">@bank.BankName</option>
+
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="accountNumber" class="form-label">Account Number</label>
+                        <input type="text" class="form-control" id="accountNumber" name="accountNumber" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="accountHolderName" class="form-label">Account Holder Name</label>
+                        <input type="text" class="form-control" id="accountHolderName" name="accountHolderName"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="numberForPayments" class="form-label">Payment Number</label>
+                        <input type="text" class="form-control" id="numberForPayments" name="numberForPayments"
+                            required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form id="editProfileForm" onsubmit="return updateProfile(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editBank" class="form-label">Bank</label>
+                        <select class="form-select" id="editBank" name="bank" required>
+                            <option value="">Select a bank</option>
+                            @foreach (var bank in banks)
+                            {
+                               <option value="@bank.Id">@bank.Name</option>
+
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAccountNumber" class="form-label">Account Number</label>
+                        <input type="text" class="form-control" id="editAccountNumber" name="accountNumber"
+                            value="@Model.Profile.AccountNumber" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAccountHolderName" class="form-label">Account Holder Name</label>
+                        <input type="text" class="form-control" id="editAccountHolderName" name="accountHolderName"
+                            value="@Model.Profile.AccountHolderName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNumberForPayments" class="form-label">Payment Number</label>
+                        <input type="text" class="form-control" id="editNumberForPayments" name="numberForPayments"
+                            value="@Model.Profile.NumberForPayments" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function submitProfile(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const profileData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/Landlord/Profile/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const error = await response.text();
+                    alert('Error creating profile: ' + error);
+                }
+            } catch (error) {
+                alert('Error creating profile: ' + error.message);
+            }
+        }
+
+        async function updateProfile(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const profileData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/Landlord/Profile/api', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const error = await response.text();
+                    alert('Error updating profile: ' + error);
+                }
+            } catch (error) {
+                alert('Error updating profile: ' + error.message);
+            }
+        }
+    </script>
+}

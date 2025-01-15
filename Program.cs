@@ -29,6 +29,8 @@ builder.Services.AddScoped<IUtilityService, UtilityService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ITenantDashboardService, TenantDashboardService>();
+builder.Services.AddScoped<IBankService, BankService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 
 // Add session support
 builder.Services.AddSession(options =>
