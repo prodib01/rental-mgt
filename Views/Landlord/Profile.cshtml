@@ -5,6 +5,74 @@
     var banks = Model.Banks;
 }
 
+<style>
+    .profile-card {
+        background: linear-gradient(to right, #ffffff, #f8f9fa);
+        border: none;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .profile-header {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+    }
+
+    .profile-body {
+        padding: 2rem;
+    }
+
+    .detail-label {
+        color: #6c757d;
+        font-weight: 600;
+    }
+
+    .detail-value {
+        color: #212529;
+        font-weight: 500;
+    }
+
+    .modal-content {
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        border-bottom: none;
+        padding: 1.5rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        border: 1px solid #dee2e6;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    }
+
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+    }
+</style>
+
 <div class="container mt-4">
     <!-- Main Profile Card -->
     <div class="card shadow-sm" style="border-radius: 15px;">
