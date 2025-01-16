@@ -68,7 +68,7 @@
                             <option value="">Select a bank</option>
                             @foreach (var bank in banks)
                             {
-                                <option value="@bank.Id.ToString()">@bank.Name</option>
+                                <option value="@bank.Id">@bank.Name</option>
                             }
                         </select>
                     </div>
@@ -159,6 +159,12 @@
             const bankSelect = document.getElementById('bank');
             const bankId = bankSelect.value;
 
+            // Validate bank selection
+            if (!bankId) {
+                alert('Please select a bank');
+                return;
+            }
+
             const profileData = {
                 bank: bankId,
                 accountNumber: formData.get('accountNumber'),
@@ -166,7 +172,7 @@
                 numberForPayments: formData.get('numberForPayments')
             };
 
-            console.log('Sending profile data:', profileData); // Debug log
+            console.log('Sending profile data:', profileData);
 
             try {
                 const response = await fetch('/Landlord/Profile/api', {
@@ -179,19 +185,17 @@
 
                 if (!response.ok) {
                     const error = await response.text();
-                    console.error('Server response:', error); // Debug log
+                    console.error('Server response:', error);
                     alert('Error creating profile: ' + error);
                     return;
                 }
 
                 window.location.reload();
             } catch (error) {
-                console.error('Fetch error:', error); // Debug log
+                console.error('Fetch error:', error);
                 alert('Error creating profile: ' + error.message);
             }
         }
-
-
 
         async function updateProfile(event) {
             event.preventDefault();

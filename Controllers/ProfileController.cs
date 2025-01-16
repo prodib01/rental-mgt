@@ -19,12 +19,14 @@ namespace RentalManagementSystem.Controllers
 		private readonly IProfileService _profileService;
 		private readonly IBankService _bankService;
 		private readonly RentalManagementContext _context;
+		private readonly ILogger<AuthController> _logger;
 
-		public ProfileController(IProfileService profileService, IBankService bankService, RentalManagementContext context)
+		public ProfileController(IProfileService profileService, IBankService bankService, RentalManagementContext context, ILogger<AuthController> logger)
 		{
 			_profileService = profileService;
 			_bankService = bankService;
 			_context = context;
+			_logger = logger;
 		}
 
 		[HttpGet("")]  // Empty string means this is the default route
@@ -68,10 +70,13 @@ namespace RentalManagementSystem.Controllers
 		}
 
 		[HttpPost("api")]
-		public async Task<ActionResult<Profile>> CreateProfile(CreateProfileDTO profileDTO)
+		public async Task<ActionResult<Profile>> CreateProfile([FromBody] CreateProfileDTO profileDTO)
 		{
 			try
 			{
+				// Debug logging
+				_logger.LogInformation($"Received profile creation request with bank: {profileDTO.Bank}");
+
 				var landlordId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
 				var existingProfile = await _profileService.GetProfileByLandlordIdAsync(landlordId);
@@ -83,8 +88,9 @@ namespace RentalManagementSystem.Controllers
 				var profile = await _profileService.CreateProfileAsync(profileDTO, landlordId);
 				return CreatedAtAction(nameof(GetProfile), new { id = profile.Id }, profile);
 			}
-			catch (ArgumentException ex)
+			catch (Exception ex)
 			{
+				_logger.LogError($"Error creating profile: {ex.Message}");
 				return BadRequest(ex.Message);
 			}
 		}

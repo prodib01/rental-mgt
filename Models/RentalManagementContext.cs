@@ -91,6 +91,17 @@ public class RentalManagementContext : DbContext
 		.HasForeignKey<ContactInfo>(c => c.BankId);
 		});
 
+		modelBuilder.Entity<Profile>(entity =>
+
+		{
+			entity.ToTable("Profiles");
+
+			entity.HasOne(p => p.Landlord)
+			.WithOne(u => u.Profile)
+			.HasForeignKey<Profile>(p => p.LandlordId)
+			.OnDelete(DeleteBehavior.NoAction);
+		});
+
 		// Configure User entity
 		modelBuilder.Entity<User>(entity =>
 		{

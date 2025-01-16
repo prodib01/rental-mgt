@@ -31,4 +31,5 @@ public class User
 	public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 	public bool PasswordChanged { get; set; }
 	public ICollection<Lease> Leases { get; set; }
+	public virtual Profile Profile { get; set; } 
 }

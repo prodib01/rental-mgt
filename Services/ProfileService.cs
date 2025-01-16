@@ -29,18 +29,15 @@ namespace RentalManagementSystem.Services
 
 		public async Task<Profile> CreateProfileAsync(CreateProfileDTO profileDTO, int landlordId)
 		{
+			// Verify that the user exists
+			var user = await _context.Users.FindAsync(landlordId);
+			if (user == null)
+			{
+				throw new ArgumentException($"No user found with ID {landlordId}");
+			}
+
 			// Get the banks
 			var banks = await _bankService.LoadBanksAsync();
-
-			// Debug logging
-			System.Diagnostics.Debug.WriteLine($"Received bank value: {profileDTO.Bank}");
-			System.Diagnostics.Debug.WriteLine($"Available banks: {string.Join(", ", banks.Select(b => $"{b.Id}"))}");
-
-			// Check if bank value is null or empty
-			if (string.IsNullOrEmpty(profileDTO.Bank))
-			{
-				throw new ArgumentException("Bank ID cannot be null or empty");
-			}
 
 			// Try to parse the bank ID
 			if (!int.TryParse(profileDTO.Bank, out int bankId))
@@ -48,6 +45,7 @@ namespace RentalManagementSystem.Services
 				throw new ArgumentException($"Could not parse '{profileDTO.Bank}' as a valid bank ID");
 			}
 
+			// Find the bank by ID
 			var bank = banks.FirstOrDefault(b => b.Id == bankId);
 			if (bank == null)
 			{
@@ -57,6 +55,7 @@ namespace RentalManagementSystem.Services
 			var profile = new Profile
 			{
 				LandlordId = landlordId,
+				Landlord = user,  // Set the navigation property
 				Bank = bank.Name,
 				AccountNumber = profileDTO.AccountNumber,
 				AccountHolderName = profileDTO.AccountHolderName,
