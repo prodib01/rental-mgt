@@ -308,8 +308,8 @@
 
         <!-- Header -->
         <header id="header" class="d-flex align-items-center">
-            <div class="d-flex justify-content-end align-items-center w-100"> <!-- Changed to justify-content-end -->
-                <button id="sidebarCollapse" class="btn btn-link d-md-none text-dark me-auto"> <!-- Added me-auto -->
+            <div class="d-flex justify-content-end align-items-center w-100">
+                <button id="sidebarCollapse" class="btn btn-link d-md-none text-dark me-auto">
                     <i class="fas fa-bars fs-5"></i>
                 </button>
 
@@ -352,6 +352,7 @@
                 </div>
             </div>
         </header>
+
 
         <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel"
             aria-hidden="true">
@@ -407,133 +408,114 @@
     </div>
 
 
-    @section Scripts {
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                // Sidebar toggle
-                document.getElementById('sidebarCollapse')?.addEventListener('click', function () {
-                    document.getElementById('sidebar').classList.toggle('active');
-                });
 
-                // Initialize dropdowns
-                var dropdowns = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'))
-                dropdowns.map(function (dropdownToggle) {
-                    return new bootstrap.Dropdown(dropdownToggle)
-                });
-            });
-        </script>
-
-        <!-- Place these just before closing body tag -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                // Sidebar toggle
-                document.getElementById('sidebarCollapse')?.addEventListener('click', function () {
-                    document.getElementById('sidebar').classList.toggle('active');
-                });
-
-                // Initialize all modals
-                var modals = [].slice.call(document.querySelectorAll('.modal'));
-                modals.map(function (modal) {
-                    return new bootstrap.Modal(modal);
-                });
-
-                // Initialize all dropdowns
-                var dropdowns = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'))
-                dropdowns.map(function (dropdownToggle) {
-                    return new bootstrap.Dropdown(dropdownToggle);
-                });
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+        // Initialize Bootstrap components
+        document.addEventListener('DOMContentLoaded', function () {
+            // Sidebar toggle
+            document.getElementById('sidebarCollapse')?.addEventListener('click', function () {
+                document.getElementById('sidebar').classList.toggle('active');
             });
 
-            $(document).ready(function () {
-                // Change Password Modal Functionality
-                $('#changePasswordBtn').on('click', function () {
-                    var currentPassword = $('#currentPassword').val();
-                    var newPassword = $('#newPassword').val();
-                    var confirmPassword = $('#confirmPassword').val();
+            // Initialize dropdowns explicitly
+            var dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+            dropdownElementList.map(function (dropdownToggle) {
+                return new bootstrap.Dropdown(dropdownToggle);
+            });
 
-                    // Reset validation states
-                    $('.is-invalid').removeClass('is-invalid');
-                    $('.invalid-feedback').empty();
-                    $('#passwordChangeError').addClass('d-none');
-                    $('#passwordChangeSuccess').addClass('d-none');
+            // Initialize modals
+            var modalElementList = [].slice.call(document.querySelectorAll('.modal'));
+            modalElementList.map(function (modalEl) {
+                return new bootstrap.Modal(modalEl);
+            });
+        });
 
-                    // Client-side validation
-                    var isValid = true;
+        // Password change functionality
+        $(document).ready(function () {
+            $('#changePasswordBtn').on('click', function () {
+                var currentPassword = $('#currentPassword').val();
+                var newPassword = $('#newPassword').val();
+                var confirmPassword = $('#confirmPassword').val();
 
-                    if (!currentPassword) {
-                        $('#currentPassword').addClass('is-invalid')
-                            .siblings('.invalid-feedback').text('Current password is required');
-                        isValid = false;
-                    }
+                // Reset validation states
+                $('.is-invalid').removeClass('is-invalid');
+                $('.invalid-feedback').empty();
+                $('#passwordChangeError').addClass('d-none');
+                $('#passwordChangeSuccess').addClass('d-none');
 
-                    if (!newPassword) {
-                        $('#newPassword').addClass('is-invalid')
-                            .siblings('.invalid-feedback').text('New password is required');
-                        isValid = false;
-                    }
+                // Client-side validation
+                var isValid = true;
 
-                    if (newPassword !== confirmPassword) {
-                        $('#confirmPassword').addClass('is-invalid')
-                            .siblings('.invalid-feedback').text('Passwords do not match');
-                        isValid = false;
-                    }
+                if (!currentPassword) {
+                    $('#currentPassword').addClass('is-invalid')
+                        .siblings('.invalid-feedback').text('Current password is required');
+                    isValid = false;
+                }
 
-                    if (!isValid) return;
+                if (!newPassword) {
+                    $('#newPassword').addClass('is-invalid')
+                        .siblings('.invalid-feedback').text('New password is required');
+                    isValid = false;
+                }
 
-                    // Get the anti-forgery token
-                    var token = $('input[name="__RequestVerificationToken"]').val();
+                if (newPassword !== confirmPassword) {
+                    $('#confirmPassword').addClass('is-invalid')
+                        .siblings('.invalid-feedback').text('Passwords do not match');
+                    isValid = false;
+                }
 
-                    // Send AJAX request
-                    $.ajax({
-                        url: '/Auth/ChangePassword',
-                        type: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': token
-                        },
-                        data: JSON.stringify({
-                            currentPassword: currentPassword,
-                            newPassword: newPassword,
-                            confirmPassword: confirmPassword
-                        }),
-                        success: function (response) {
-                            console.log('Response:', response);
-                            if (response.success) {
-                                $('#passwordChangeSuccess').removeClass('d-none');
-                                $('#changePasswordForm')[0].reset();
-                                setTimeout(function () {
-                                    $('#changePasswordModal').modal('hide');
-                                }, 2000);
-                            } else {
-                                $('#passwordChangeError')
-                                    .text(response.message || 'An error occurred')
-                                    .removeClass('d-none');
-                            }
-                        },
-                        error: function (xhr, status, error) {
-                            console.error('Error:', error);
+                if (!isValid) return;
+
+                // Get the anti-forgery token
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '/Auth/ChangePassword',
+                    type: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    data: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword,
+                        confirmPassword: confirmPassword
+                    }),
+                    success: function (response) {
+                        if (response.success) {
+                            $('#passwordChangeSuccess').removeClass('d-none');
+                            $('#changePasswordForm')[0].reset();
+                            setTimeout(function () {
+                                $('#changePasswordModal').modal('hide');
+                            }, 2000);
+                        } else {
                             $('#passwordChangeError')
-                                .text('An error occurred while processing your request')
+                                .text(response.message || 'An error occurred')
                                 .removeClass('d-none');
                         }
-                    });
-                });
-
-                // Reset form when modal is closed
-                $('#changePasswordModal').on('hidden.bs.modal', function () {
-                    $('#changePasswordForm')[0].reset();
-                    $('.is-invalid').removeClass('is-invalid');
-                    $('.invalid-feedback').empty();
-                    $('#passwordChangeError').addClass('d-none');
-                    $('#passwordChangeSuccess').addClass('d-none');
+                    },
+                    error: function (xhr, status, error) {
+                        $('#passwordChangeError')
+                            .text('An error occurred while processing your request')
+                            .removeClass('d-none');
+                    }
                 });
             });
-        </script>
-        @await RenderSectionAsync("Scripts", required: false)
-    }
+
+            // Reset form when modal is closed
+            $('#changePasswordModal').on('hidden.bs.modal', function () {
+                $('#changePasswordForm')[0].reset();
+                $('.is-invalid').removeClass('is-invalid');
+                $('.invalid-feedback').empty();
+                $('#passwordChangeError').addClass('d-none');
+                $('#passwordChangeSuccess').addClass('d-none');
+            });
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 
 </html>
