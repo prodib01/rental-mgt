@@ -46,9 +46,78 @@ namespace RentalManagementSystem.Controllers
 				})
 				.ToListAsync();
 
+			var recentReports = new List<RecentReportViewModel>();
+
+			// Financial Reports
+			var financialReports = await _context.FinancialReports
+				.Where(r => r.Property.UserId == userId)
+				.OrderByDescending(r => r.EndDate)
+				.Take(5)
+				.Select(r => new RecentReportViewModel
+				{
+					Id = r.Id,
+					ReportType = "Financial",
+					PropertyId = r.PropertyId,
+					PropertyAddress = r.Property.Address,
+					GeneratedDate = r.EndDate,
+					StartDate = r.StartDate,
+					EndDate = r.EndDate,
+					KeyMetric = r.TotalRevenue
+				})
+				.ToListAsync();
+			recentReports.AddRange(financialReports);
+			
+			var occupancyReports = await _context.OccupancyReports
+				.Where(r => r.Property.UserId == userId)
+				.OrderByDescending(r => r.GeneratedDate)
+				.Take(5)
+				.Select(r => new RecentReportViewModel
+				{
+					Id = r.Id,
+					ReportType = "Occupancy",
+					PropertyId = r.PropertyId,
+					PropertyAddress = r.Property.Address,
+					GeneratedDate = r.GeneratedDate,
+					KeyMetric = r.OccupancyRate
+				})
+				.ToListAsync();
+				
+			var maintenanceReports = await _context.MaintenanceReports
+				.Where(r => r.Property.UserId == userId)
+				.OrderByDescending(r => r.EndDate)
+				.Take(5)
+				.Select(r => new RecentReportViewModel
+				{
+					Id = r.Id,
+					ReportType = "Maintenance",
+					PropertyId = r.PropertyId,
+					PropertyAddress = r.Property.Address,
+					GeneratedDate = r.EndDate,
+					StartDate = r.StartDate,
+					EndDate = r.EndDate,
+					KeyMetric = r.TotalMaintenanceCost
+				})
+				.ToListAsync();
+				
+			var leaseReports = await _context.LeaseReports
+				.Where(r => r.Property.UserId == userId)
+				.OrderByDescending(r => r.GeneratedDate)
+				.Take(5)
+				.Select(r => new RecentReportViewModel
+				{
+					Id = r.Id,
+					ReportType = "Lease",
+					PropertyId = r.PropertyId,
+					PropertyAddress = r.Property.Address,
+					GeneratedDate = r.GeneratedDate,
+					KeyMetric = r.ActiveLeases
+				})
+				.ToListAsync();		
+
 			var viewModel = new ReportIndexViewModel
 			{
-				Properties = properties
+				Properties = properties,
+				RecentReports = recentReports.OrderByDescending(r => r.GeneratedDate).Take(10).ToList(),
 			};
 
 
