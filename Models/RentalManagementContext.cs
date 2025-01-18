@@ -32,6 +32,8 @@ public class RentalManagementContext : DbContext
 	public DbSet<Bank> Banks { get; set; }
 	public DbSet<ContactInfo> ContactInfos { get; set; }
 
+	public DbSet<Notification> Notifications { get; set; }
+
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
 		// Disable cascade delete globally
@@ -55,6 +57,36 @@ public class RentalManagementContext : DbContext
 				.OnDelete(DeleteBehavior.NoAction)
 				.IsRequired();
 		});
+
+		modelBuilder.Entity<Notification>(entity =>
+{
+	entity.ToTable("Notifications");
+
+	entity.HasOne(n => n.User)
+		.WithMany()
+		.HasForeignKey(n => n.UserId)
+		.OnDelete(DeleteBehavior.NoAction);
+
+	entity.Property(n => n.Title)
+		.IsRequired()
+		.HasMaxLength(200);
+
+	entity.Property(n => n.Message)
+		.IsRequired()
+		.HasMaxLength(1000);
+
+	entity.Property(n => n.CreatedAt)
+		.HasDefaultValueSql("GETUTCDATE()")
+		.ValueGeneratedOnAdd();
+
+	entity.Property(n => n.Type)
+		.HasConversion<string>()
+		.HasMaxLength(50);
+
+	entity.Property(n => n.TargetUrl)
+		.HasMaxLength(2000)
+		.IsRequired(false);
+});
 
 		// Configure House entity
 		modelBuilder.Entity<House>(entity =>

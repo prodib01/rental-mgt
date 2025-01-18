@@ -21,6 +21,7 @@ builder.Logging.AddDebug();
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());  // Changed this line
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor(); 
+builder.Services.AddSignalR();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<RentalManagementContext>();
 builder.Services.AddScoped<ILandlordDashboardService, LandlordDashboardService>();
@@ -31,6 +32,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ITenantDashboardService, TenantDashboardService>();
 builder.Services.AddScoped<IBankService, BankService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add session support
 builder.Services.AddSession(options =>
