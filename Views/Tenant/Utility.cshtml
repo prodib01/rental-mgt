@@ -1,0 +1,161 @@
+@model List<RentalManagementSystem.ViewModels.UtilityReadingViewModel>
+
+@{
+    Layout = "_TenantLayout";
+}
+
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex align-items-center justify-content-between">
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info shadow-sm border-start border-info border-5" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-info-circle me-3 fs-4"></i>
+                <div>No utility readings found.</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-lg mb-5 border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary">Billing Details</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="border-radius: 8px; overflow: hidden;">
+                        <thead>
+                            <tr style="background-color: #f8f9fa;">
+                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
+                                    <i class="fas fa-bolt me-2 text-primary"></i>Utility
+                                </th>
+                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>Reading Date
+                                </th>
+                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
+                                    <i class="fas fa-history me-2 text-primary"></i>Previous Reading
+                                </th>
+                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
+                                    <i class="fas fa-tachometer-alt me-2 text-primary"></i>Current Reading
+                                </th>
+                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
+                                    <i class="fas fa-chart-line me-2 text-primary"></i>Consumption
+                                </th>
+                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
+                                    <i class="fas fa-dollar-sign me-2 text-primary"></i>Total Cost
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="border-top-0">
+                            @foreach (var reading in Model)
+                            {
+                                <tr style="transition: all 0.2s ease;" class="border-bottom">
+                                    <td class="px-4">
+                                        <div class="d-flex align-items-center">
+                                            @{
+                                                var utilityIcon = reading.UtilityName.ToLower() switch
+                                                {
+                                                    var u when u.Contains("water") => "fa-water",
+                                                    var u when u.Contains("electric") => "fa-bolt",
+                                                    var u when u.Contains("gas") => "fa-fire",
+                                                    _ => "fa-plug"
+                                                };
+                                            }
+                                            <span class="badge bg-primary-subtle text-primary p-2 me-2">
+                                                <i class="fas @utilityIcon"></i>
+                                            </span>
+                                            <span class="fw-medium">@reading.UtilityName</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4">@reading.ReadingDate.ToString("MMM dd, yyyy")</td>
+                                    <td class="px-4">@reading.PrevReading</td>
+                                    <td class="px-4">@reading.CurrentReading</td>
+                                    <td class="px-4">
+                                        <span class="badge bg-info-subtle text-info px-3 py-2" style="font-size: 0.9em;">
+                                            @reading.Consumption
+                                        </span>
+                                    </td>
+                                    <td class="px-4">
+                                        <span class="fw-bold text-success" style="font-size: 1.1em;">
+                                            @reading.TotalCost.ToString("C")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-lg"
+                    style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h4 class="text-primary mb-0">
+                                <i class="fas fa-money-bill-wave me-2"></i>Total Bills
+                            </h4>
+                            <span class="badge bg-success-subtle text-success px-3 py-2">Monthly</span>
+                        </div>
+                        <p class="display-6 fw-bold text-success mb-0">
+                            @Model.Sum(r => r.TotalCost).ToString("C")
+                        </p>
+                        <p class="text-muted mt-2 mb-0">Total amount for all utilities</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-lg"
+                    style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h4 class="text-primary mb-0">
+                                <i class="fas fa-plug me-2"></i>Active Utilities
+                            </h4>
+                            <span class="badge bg-primary-subtle text-primary px-3 py-2">Total</span>
+                        </div>
+                        <p class="display-6 fw-bold text-primary mb-0">
+                            @Model.Select(r => r.UtilityName).Distinct().Count()
+                        </p>
+                        <p class="text-muted mt-2 mb-0">Number of different utilities</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .table> :not(caption)>*>* {
+        padding: 1rem 0.75rem;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.04);
+    }
+
+    .table thead tr {
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    @@media print {
+        .btn-outline-primary {
+            display: none;
+        }
+
+        .card {
+            box-shadow: none !important;
+        }
+    }
+</style>

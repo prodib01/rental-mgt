@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace RentalManagementSystem.Controllers
 {
     [Authorize]
-    [Route("Tenant/Utilities")]
+    [Route("Tenant/Utility")]
     public class TUtilityController : Controller
     {
         private readonly IUtilityService _utilityService;
@@ -52,7 +52,7 @@ namespace RentalManagementSystem.Controllers
                 .ToListAsync();
 
             // Return the view with readings
-            return View("~/Views/Tenant/Utilities.cshtml", readings);
+            return View("~/Views/Tenant/Utility.cshtml", readings);
         }
     }
 }
