@@ -33,6 +33,7 @@ public class RentalManagementContext : DbContext
 	public DbSet<ContactInfo> ContactInfos { get; set; }
 
 	public DbSet<Notification> Notifications { get; set; }
+	public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

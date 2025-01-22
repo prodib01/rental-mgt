@@ -372,5 +372,138 @@ namespace RentalManagementSystem.Controllers
 
 			return "REF-UNKNOWN";
 		}
+
+		[HttpGet]
+		[Route("GetPaymentDetails")]
+		public async Task<IActionResult> GetPaymentDetails(int paymentType, int houseId)
+		{
+			try
+			{
+				var house = await _context.Houses
+					.Include(h => h.Property)
+					.ThenInclude(p => p.User)
+					.ThenInclude(u => u.Profile)
+					.FirstOrDefaultAsync(h => h.Id == houseId);
+
+				if (house == null)
+				{
+					return NotFound("House not found.");
+				}
+
+				var landlordProfile = house.Property.User.Profile;
+
+				if (landlordProfile == null)
+				{
+					return NotFound("Landlord payment details not found.");
+				}
+
+				decimal amount = 0;
+				if (paymentType == (int)PaymentType.Rent)
+				{
+					amount = house.Rent;
+				}
+				else if (paymentType == (int)PaymentType.Utility)
+				{
+					var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+					if (int.TryParse(userIdStr, out var userId))
+					{
+						amount = await _context.UtilityReadings
+							.Where(ur => ur.TenantId == userId && !ur.IsPaid)
+							.SumAsync(ur => ur.TotalCost);
+					}
+				}
+
+				var paymentDetails = new PaymentDetailsDto
+				{
+					PaymentMethod = "Pending",
+					LAndlordDetails = landlordProfile,
+					Amount = amount
+				};
+
+				return Json(paymentDetails);
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Error: {ex.Message}");
+			}
+		}
+
+		[HttpPost]
+		[Route("ProcessPayment")]
+		public async Task<IActionResult> ProcessPayment([FromBody] PaymentProcessingDto paymentProcessingDto)
+		{
+			try
+			{
+				var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+				if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
+				{
+					return Unauthorized("Invalid user ID");
+				}
+
+				using var transaction = await _context.Database.BeginTransactionAsync();
+				try
+				{
+					var payment = new Payment
+					{
+						PaymentType = paymentProcessingDto.PaymentType,
+						Amount = paymentProcessingDto.Amount,
+						PaymentDate = DateTime.Now,
+						PaymentMethod = paymentProcessingDto.PaymentMethod,
+						PaymentStatus = "Pending",
+						PaymentReference = GeneratePaymentReference(paymentProcessingDto.HouseId, userId),
+						HouseId = paymentProcessingDto.HouseId,
+						UserId = userId
+					};
+
+					_context.Payments.Add(payment);
+					await _context.SaveChangesAsync();
+
+					var paymentTransaction = new PaymentTransaction
+					{
+						PaymentId = payment.Id,
+						TransactionReference = paymentProcessingDto.TransactionReference,
+						TransactionStatus = "Pending",
+						TransactionDate = DateTime.Now,
+						PaymentProvider = paymentProcessingDto.PaymentMethod,
+						Amount = paymentProcessingDto.Amount
+					};
+
+					_context.PaymentTransactions.Add(paymentTransaction);
+					await _context.SaveChangesAsync();
+
+					if (paymentProcessingDto.PaymentType == "Utility")
+					{
+						var unpaidUtilities = await _context.UtilityReadings
+							.Where(ur => ur.TenantId == userId && !ur.IsPaid)
+							.ToListAsync();
+
+						foreach (var unpaidUtility in unpaidUtilities)
+						{
+							unpaidUtility.IsPaid = true;
+							_context.Update(unpaidUtility);
+						}
+						await _context.SaveChangesAsync();
+					}
+
+					await transaction.CommitAsync();
+
+					return Ok(new
+					{
+						paymentId = payment.Id,
+						transactionId = paymentTransaction.Id,
+						message = "Payment processed successfully"
+					});
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error processing payment: {ex.Message}");
+				}
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Error processing payment: {ex.Message}");
+			}
+		}
 	}
 }

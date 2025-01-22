@@ -18,6 +18,7 @@ namespace RentalManagementSystem.Models
 		public string PaymentStatus { get; set; }
 		public string PaymentReference { get; set; }
 		public string Description { get; set; }
+		public PaymentTransaction PaymentTransaction { get; set; }
 
 		public int? HouseId { get; set; }
 		public House House { get; set; }
