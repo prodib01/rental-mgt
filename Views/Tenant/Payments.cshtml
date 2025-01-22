@@ -241,8 +241,7 @@
                                 <option value="">Select payment method</option>
                                 <option value="Cash">Cash</option>
                                 <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Debit Card">Debit Card</option>
+                                <option value="Mobile Money">Mobile Money</option>
                             </select>
                             <div class="invalid-feedback">Please select a payment method.</div>
                         </div>
@@ -297,46 +296,66 @@
 
     // Set default date to today
     // Add this script to your Payments.cshtml view
-    document.addEventListener('DOMContentLoaded', function () {
-        const paymentTypeSelect = document.getElementById('PaymentType');
-        const submitButton = document.querySelector('button[type="submit"]');
-        const messageDiv = document.getElementById('paymentMessage') || createMessageDiv();
+// Add this to your existing script section in Payments.cshtml
+document.addEventListener('DOMContentLoaded', function () {
+    const paymentTypeSelect = document.getElementById('PaymentType');
+    const amountInput = document.getElementById('Amount');
+    const utilityBreakdownDiv = document.getElementById('utilityBreakdown');
+    const houseIdInput = document.querySelector('input[name="HouseId"]');
 
-        async function checkPaymentAvailability(paymentType) {
+    async function updateAmount() {
+        const selectedType = paymentTypeSelect.value;
+        
+        if (!selectedType) {
+            amountInput.value = '';
+            utilityBreakdownDiv.classList.add('d-none');
+            return;
+        }
+
+        if (selectedType === 'Rent') {
             try {
-                const response = await fetch(`/Tenant/Payments/CheckPaymentAvailability?paymentType=${paymentType}`);
+                const houseId = houseIdInput.value;
+                const response = await fetch(`/Tenant/Payments/GetHouseRent/${houseId}`);
                 const data = await response.json();
-
-                if (!data.available) {
-                    messageDiv.textContent = data.message;
-                    messageDiv.style.display = 'block';
-                    messageDiv.className = 'alert alert-warning';
-                    submitButton.disabled = true;
-                } else {
-                    messageDiv.style.display = 'none';
-                    submitButton.disabled = false;
-                }
+                amountInput.value = data.rent.toFixed(2);
+                utilityBreakdownDiv.classList.add('d-none');
             } catch (error) {
-                console.error('Error checking payment availability:', error);
+                console.error('Error fetching rent amount:', error);
+            }
+        } else if (selectedType === 'Utility') {
+            try {
+                const response = await fetch('/Tenant/Payments/GetUnpaidUtilities');
+                const utilities = await response.json();
+                
+                if (utilities.length === 0) {
+                    amountInput.value = '0.00';
+                    utilityBreakdownDiv.innerHTML = '<div class="alert alert-info">No unpaid utilities found.</div>';
+                } else {
+                    let total = 0;
+                    let breakdownHtml = '<div class="list-group">';
+                    
+                    utilities.forEach(utility => {
+                        total += utility.totalCost;
+                        breakdownHtml += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>${utility.name}</span>
+                                <span class="badge bg-primary rounded-pill">$${utility.totalCost.toFixed(2)}</span>
+                            </div>`;
+                    });
+                    
+                    breakdownHtml += '</div>';
+                    utilityBreakdownDiv.innerHTML = breakdownHtml;
+                    amountInput.value = total.toFixed(2);
+                }
+                utilityBreakdownDiv.classList.remove('d-none');
+            } catch (error) {
+                console.error('Error fetching utility amounts:', error);
             }
         }
+    }
 
-        function createMessageDiv() {
-            const div = document.createElement('div');
-            div.id = 'paymentMessage';
-            div.className = 'alert alert-warning';
-            div.style.display = 'none';
-            paymentTypeSelect.parentNode.insertBefore(div, paymentTypeSelect.nextSibling);
-            return div;
-        }
-
-        if (paymentTypeSelect) {
-            paymentTypeSelect.addEventListener('change', function () {
-                const selectedType = this.value;
-                if (selectedType) {
-                    checkPaymentAvailability(selectedType);
-                }
-            });
-        }
-    });
+    if (paymentTypeSelect) {
+        paymentTypeSelect.addEventListener('change', updateAmount);
+    }
+});
 </script>

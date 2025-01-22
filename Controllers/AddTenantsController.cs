@@ -55,7 +55,7 @@ public async Task<IActionResult> Tenants()
 	// Get available houses AND currently occupied houses
 	var houses = await _context.Houses
 		.Where(h => h.Property.UserId == userId && 
-					((!h.IsOccupied && h.Tenant == null) || h.Tenant != null))
+					((!h.IsOccupied && h.Tenant == null)))
 		.Select(h => new SelectListItem
 		{
 			Value = h.HouseNumber,

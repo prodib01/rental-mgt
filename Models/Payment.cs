@@ -30,9 +30,7 @@ namespace RentalManagementSystem.Models
 	{
 		Cash,
 		BankTransfer,
-		CreditCard,
-		PayPal,
-		Other
+		MobileMoney,
 	}
 	
 	public enum PaymentType

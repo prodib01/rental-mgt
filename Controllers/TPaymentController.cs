@@ -104,6 +104,8 @@ namespace RentalManagementSystem.Controllers
 		}
 
 
+		// Add or update these methods in your TPaymentController class
+
 		[HttpGet]
 		[Route("GetHouseRent/{houseId}")]
 		public async Task<IActionResult> GetHouseRent(int houseId)
@@ -119,8 +121,6 @@ namespace RentalManagementSystem.Controllers
 		[Route("GetUnpaidUtilities")]
 		public async Task<IActionResult> GetUnpaidUtilities()
 		{
-			// The issue might be here - you're using "uid" claim but in other methods you use ClaimTypes.NameIdentifier
-			// Let's fix this to be consistent:
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
 			{
@@ -137,13 +137,6 @@ namespace RentalManagementSystem.Controllers
 					totalCost = u.TotalCost
 				})
 				.ToListAsync();
-
-			// Add some logging to debug
-			Console.WriteLine($"User ID: {userId}, Found {unpaidUtilities.Count} unpaid utilities");
-			foreach (var util in unpaidUtilities)
-			{
-				Console.WriteLine($"Utility: {util.name}, Cost: {util.totalCost}");
-			}
 
 			return Json(unpaidUtilities);
 		}
