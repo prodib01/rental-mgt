@@ -4,131 +4,198 @@
     Layout = "_TenantLayout";
 }
 
-<div class="container py-5">
-    <div class="row mb-4">
-        <div class="col">
-            <div class="d-flex align-items-center justify-content-between">
-                <button class="btn btn-outline-primary" onclick="window.print()">
-                    <i class="fas fa-print me-2"></i>Print
-                </button>
-            </div>
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+}
+
+<div class="container mt-4 animate__animated animate__fadeIn">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary mb-0">
+            <i class="fas fa-file-invoice me-2"></i>Utility Readings
+        </h2>
+        <div>
+            <button class="btn btn-outline-primary" onclick="printReport()">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
+            <button class="btn btn-outline-secondary ms-2" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf me-2"></i>Export PDF
+            </button>
         </div>
     </div>
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info shadow-sm border-start border-info border-5" role="alert">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-info-circle me-3 fs-4"></i>
-                <div>No utility readings found.</div>
-            </div>
+        <div class="alert alert-info d-flex align-items-center animate__animated animate__fadeIn">
+            <i class="fas fa-info-circle fs-4 me-3"></i>
+            <span>No utility readings found for the current period.</span>
         </div>
     }
     else
     {
-        <div class="card shadow-lg mb-5 border-0">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 text-primary">Billing Details</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" style="border-radius: 8px; overflow: hidden;">
-                        <thead>
-                            <tr style="background-color: #f8f9fa;">
-                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
-                                    <i class="fas fa-bolt me-2 text-primary"></i>Utility
-                                </th>
-                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
-                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>Reading Date
-                                </th>
-                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
-                                    <i class="fas fa-history me-2 text-primary"></i>Previous Reading
-                                </th>
-                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
-                                    <i class="fas fa-tachometer-alt me-2 text-primary"></i>Current Reading
-                                </th>
-                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
-                                    <i class="fas fa-chart-line me-2 text-primary"></i>Consumption
-                                </th>
-                                <th scope="col" class="text-dark py-3 px-4" style="font-weight: 600;">
-                                    <i class="fas fa-dollar-sign me-2 text-primary"></i>Total Cost
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="border-top-0">
-                            @foreach (var reading in Model)
-                            {
-                                <tr style="transition: all 0.2s ease;" class="border-bottom">
-                                    <td class="px-4">
-                                        <div class="d-flex align-items-center">
-                                            @{
-                                                var utilityIcon = reading.UtilityName.ToLower() switch
-                                                {
-                                                    var u when u.Contains("water") => "fa-water",
-                                                    var u when u.Contains("electric") => "fa-bolt",
-                                                    var u when u.Contains("gas") => "fa-fire",
-                                                    _ => "fa-plug"
-                                                };
-                                            }
-                                            <span class="badge bg-primary-subtle text-primary p-2 me-2">
-                                                <i class="fas @utilityIcon"></i>
-                                            </span>
-                                            <span class="fw-medium">@reading.UtilityName</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-4">@reading.ReadingDate.ToString("MMM dd, yyyy")</td>
-                                    <td class="px-4">@reading.PrevReading</td>
-                                    <td class="px-4">@reading.CurrentReading</td>
-                                    <td class="px-4">
-                                        <span class="badge bg-info-subtle text-info px-3 py-2" style="font-size: 0.9em;">
-                                            @reading.Consumption
-                                        </span>
-                                    </td>
-                                    <td class="px-4">
-                                        <span class="fw-bold text-success" style="font-size: 1.1em;">
-                                            @reading.TotalCost.ToString("C")
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+        <div class="card mb-4 animate__animated animate__fadeInUp" 
+             style="border-radius: 15px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;">
+            <div class="card-header bg-white py-3" style="border-bottom: 2px solid #edf2f7;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 text-primary">
+                        <i class="fas fa-file-invoice-dollar me-2"></i>Billing Details
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterByMonth()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="sortTable()">
+                            <i class="fas fa-sort me-1"></i>Sort
+                        </button>
+                    </div>
                 </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="readingsTable">
+                    <thead style="background: linear-gradient(to right, #f8f9fa, #ffffff);">
+                        <tr>
+                            <th scope="col" class="text-primary" style="min-width: 200px;">
+                                <i class="fas fa-bolt me-2"></i>Utility
+                            </th>
+                            <th scope="col" class="text-primary">
+                                <i class="fas fa-calendar-alt me-2"></i>Reading Date
+                            </th>
+                            <th scope="col" class="text-primary">
+                                <i class="fas fa-history me-2"></i>Previous
+                            </th>
+                            <th scope="col" class="text-primary">
+                                <i class="fas fa-tachometer-alt me-2"></i>Current
+                            </th>
+                            <th scope="col" class="text-primary">
+                                <i class="fas fa-chart-line me-2"></i>Consumption
+                            </th>
+                            <th scope="col" class="text-primary text-end">
+                                <i class="fas fa-dollar-sign me-2"></i>Total Cost
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reading in Model)
+                        {
+                            <tr class="align-middle">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        @{
+                                            var (icon, color) = reading.UtilityName.ToLower() switch
+                                            {
+                                                var u when u.Contains("water") => ("fa-water", "primary"),
+                                                var u when u.Contains("electric") => ("fa-bolt", "warning"),
+                                                var u when u.Contains("gas") => ("fa-fire", "danger"),
+                                                _ => ("fa-plug", "info")
+                                            };
+                                        }
+                                        <span class="rounded-circle p-2 me-3" 
+                                              style="background-color: var(--bs-@color-bg-subtle);">
+                                            <i class="fas @icon text-@color"></i>
+                                        </span>
+                                        <span class="fw-medium">@reading.UtilityName</span>
+                                    </div>
+                                </td>
+                                <td>@reading.ReadingDate.ToString("MMMM dd, yyyy")</td>
+                                <td>@reading.PrevReading.ToString("N2")</td>
+                                <td>@reading.CurrentReading.ToString("N2")</td>
+                                <td>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary px-3">
+                                        @reading.Consumption.ToString("N2")
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-semibold">
+                                        @reading.TotalCost.ToString("C2")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-group-divider">
+                        <tr class="fw-bold">
+                            <td colspan="5" class="text-end">Total Amount:</td>
+                            <td class="text-end text-success">
+                                @Model.Sum(r => r.TotalCost).ToString("C2")
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
 
         <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-lg"
-                    style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h4 class="text-primary mb-0">
-                                <i class="fas fa-money-bill-wave me-2"></i>Total Bills
-                            </h4>
-                            <span class="badge bg-success-subtle text-success px-3 py-2">Monthly</span>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 animate__animated animate__fadeInUp" 
+                     style="border-radius: 15px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-money-bill-wave text-success fs-4 me-2"></i>
+                                <h5 class="card-title mb-0">Total Bills</h5>
+                            </div>
+                            <span class="badge bg-success bg-opacity-10 text-success">Monthly</span>
                         </div>
-                        <p class="display-6 fw-bold text-success mb-0">
-                            @Model.Sum(r => r.TotalCost).ToString("C")
-                        </p>
-                        <p class="text-muted mt-2 mb-0">Total amount for all utilities</p>
+                        <h2 class="text-success fw-bold mb-2">
+                            @Model.Sum(r => r.TotalCost).ToString("C2")
+                        </h2>
+                        <p class="text-muted small mb-0">Total amount for all utilities</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-lg"
-                    style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h4 class="text-primary mb-0">
-                                <i class="fas fa-plug me-2"></i>Active Utilities
-                            </h4>
-                            <span class="badge bg-primary-subtle text-primary px-3 py-2">Total</span>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 animate__animated animate__fadeInUp" 
+                     style="border-radius: 15px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-plug text-primary fs-4 me-2"></i>
+                                <h5 class="card-title mb-0">Active Utilities</h5>
+                            </div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">Total</span>
                         </div>
-                        <p class="display-6 fw-bold text-primary mb-0">
+                        <h2 class="text-primary fw-bold mb-2">
                             @Model.Select(r => r.UtilityName).Distinct().Count()
-                        </p>
-                        <p class="text-muted mt-2 mb-0">Number of different utilities</p>
+                        </h2>
+                        <p class="text-muted small mb-0">Number of different utilities</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 animate__animated animate__fadeInUp" 
+                     style="border-radius: 15px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-chart-line text-info fs-4 me-2"></i>
+                                <h5 class="card-title mb-0">Average Cost</h5>
+                            </div>
+                            <span class="badge bg-info bg-opacity-10 text-info">Per Utility</span>
+                        </div>
+                        <h2 class="text-info fw-bold mb-2">
+                            @((Model.Sum(r => r.TotalCost) / Model.Select(r => r.UtilityName).Distinct().Count()).ToString("C2"))
+                        </h2>
+                        <p class="text-muted small mb-0">Average cost per utility type</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 animate__animated animate__fadeInUp" 
+                     style="border-radius: 15px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-calendar-check text-warning fs-4 me-2"></i>
+                                <h5 class="card-title mb-0">Billing Period</h5>
+                            </div>
+                            <span class="badge bg-warning bg-opacity-10 text-warning">Current</span>
+                        </div>
+                        <h2 class="text-warning fw-bold mb-2">
+                            @Model.Min(r => r.ReadingDate).ToString("MMM yyyy")
+                        </h2>
+                        <p class="text-muted small mb-0">Current billing cycle</p>
                     </div>
                 </div>
             </div>
@@ -136,26 +203,196 @@
     }
 </div>
 
-<style>
-    .table> :not(caption)>*>* {
-        padding: 1rem 0.75rem;
-    }
+<!-- Print Template -->
+<div id="printTemplate" style="display: none;">
+    <div class="print-header">
+        <h1 class="text-center mb-4">Utility Reading Report</h1>
+        <p class="text-center text-muted">
+            Generated on @DateTime.Now.ToString("MMMM dd, yyyy HH:mm")
+        </p>
+    </div>
+    <!-- Print content will be dynamically inserted here -->
+</div>
 
-    .table tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.04);
-    }
+@section Scripts {
+    <!-- Add jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
-    .table thead tr {
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    @@media print {
-        .btn-outline-primary {
-            display: none;
+    <script>
+        function printReport() {
+            // Store the current body content
+            const originalContent = document.body.innerHTML;
+            
+            // Get only the content we want to print
+            const container = document.querySelector('.container').cloneNode(true);
+            
+            // Remove elements we don't want to print
+            container.querySelectorAll('.btn, .btn-group, [onclick]').forEach(el => el.remove());
+            
+            // Create print content
+            const printContent = `
+                <div class="print-content">
+                    <div class="text-center mb-4">
+                        <h1 class="mb-2">Utility Reading Report</h1>
+                        <p class="text-muted">Generated on ${new Date().toLocaleString()}</p>
+                    </div>
+                    ${container.innerHTML}
+                </div>
+            `;
+            
+            // Replace body content with print content
+            document.body.innerHTML = printContent;
+            
+            // Add print-specific styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @@media print {
+                    body { padding: 20px; }
+                    .animate__animated { animation: none !important; }
+                    .card { 
+                        box-shadow: none !important; 
+                        border: 1px solid #dee2e6 !important;
+                        break-inside: avoid;
+                    }
+                    .table { width: 100% !important; }
+                    .badge { border: 1px solid #dee2e6 !important; }
+                    .table-responsive { overflow: visible !important; }
+                    .row { break-inside: avoid; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Print
+            window.print();
+            
+            // Restore original content after print
+            setTimeout(() => {
+                document.body.innerHTML = originalContent;
+                // Reattach event handlers if needed
+                initializeEventHandlers();
+            }, 250);
         }
 
-        .card {
-            box-shadow: none !important;
+        function exportToPDF() {
+            // Create new jsPDF instance
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'pt', 'a4');
+
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Utility Reading Report', 40, 40);
+            
+            // Add generation date
+            doc.setFontSize(12);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 40, 60);
+
+            // Get table data
+            const tableData = [];
+            const headers = ['Utility', 'Reading Date', 'Previous', 'Current', 'Consumption', 'Total Cost'];
+            
+            document.querySelectorAll('#readingsTable tbody tr').forEach(row => {
+                const rowData = [];
+                // Get utility name (first column)
+                rowData.push(row.querySelector('td:nth-child(1)').textContent.trim());
+                // Get other columns
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    if (index > 0) { // Skip first column as we already got it
+                        rowData.push(cell.textContent.trim());
+                    }
+                });
+                tableData.push(rowData);
+            });
+
+            // Add table
+            doc.autoTable({
+                head: [headers],
+                body: tableData,
+                startY: 80,
+                margin: { top: 80 },
+                styles: { overflow: 'linebreak' },
+                columnStyles: {
+                    0: { cellWidth: 100 }, // Utility
+                    1: { cellWidth: 80 },  // Reading Date
+                    2: { cellWidth: 70 },  // Previous
+                    3: { cellWidth: 70 },  // Current
+                    4: { cellWidth: 80 },  // Consumption
+                    5: { cellWidth: 80 }   // Total Cost
+                },
+                headStyles: {
+                    fillColor: [59, 130, 246],
+                    textColor: 255
+                }
+            });
+
+            // Add summary information
+            const finalY = doc.lastAutoTable.finalY + 20;
+            doc.setFontSize(14);
+            doc.text(`Total Amount: ${document.querySelector('tfoot .text-success').textContent.trim()}`, 40, finalY);
+
+            // Save PDF
+            doc.save('utility-readings.pdf');
+        }
+
+        function initializeEventHandlers() {
+            // Reattach event handlers after printing
+            document.querySelector('[onclick="printReport()"]').addEventListener('click', printReport);
+            document.querySelector('[onclick="exportToPDF()"]').addEventListener('click', exportToPDF);
+            document.querySelector('[onclick="filterByMonth()"]').addEventListener('click', filterByMonth);
+            document.querySelector('[onclick="sortTable()"]').addEventListener('click', sortTable);
+        }
+
+        // Initialize handlers when page loads
+        document.addEventListener('DOMContentLoaded', initializeEventHandlers);
+
+        function filterByMonth() {
+            // Implement filter functionality
+            alert('Month filter functionality can be implemented here');
+        }
+
+        function sortTable() {
+            // Implement sort functionality
+            alert('Table sort functionality can be implemented here');
+        }
+    </script>
+}
+
+<style>
+    /* Custom styles */
+    .table > :not(caption) > * > * {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    /* Animation delays for cards */
+    .col-lg-3:nth-child(1) .card { animation-delay: 0.1s; }
+    .col-lg-3:nth-child(2) .card { animation-delay: 0.2s; }
+    .col-lg-3:nth-child(3) .card { animation-delay: 0.3s; }
+    .col-lg-3:nth-child(4) .card { animation-delay: 0.4s; }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .table > :not(caption) > * > * {
+            padding: 0.75rem;
+        }
+        h2 {
+            font-size: 1.5rem;
+        }
+        .card:hover {
+            transform: none;
         }
     }
 </style>
