@@ -81,32 +81,37 @@ namespace RentalManagementSystem.Controllers
 		{
 			try
 			{
+				// Log the incoming request for debugging
+				Console.WriteLine($"Received request: {System.Text.Json.JsonSerializer.Serialize(dto)}");
+
 				if (!ModelState.IsValid)
 				{
-					// Log the validation errors
-					var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-					return BadRequest(new { Errors = errors });
+					var errors = ModelState.Values
+						.SelectMany(v => v.Errors)
+						.Select(e => e.ErrorMessage)
+						.ToList();
+					return BadRequest(new { errors });
 				}
 
 				var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 				if (!int.TryParse(userIdStr, out var userId))
 				{
-					return Unauthorized("Invalid User ID.");
+					return BadRequest(new { errors = new[] { "Invalid User ID." } });
 				}
 
-				dto.TenantId = userId; // Assign the logged-in user's ID to the request
+				dto.TenantId = userId;
 
-				// Log the incoming DTO for debugging
-				Console.WriteLine($"Received DTO: {JsonSerializer.Serialize(dto)}");
+				// Log the DTO after setting TenantId
+				Console.WriteLine($"Processing request with TenantId {userId}");
 
 				var request = await _requestService.CreateRequestAsync(dto);
-				return Ok(request);
+				return Ok(new { success = true, data = request });
 			}
 			catch (Exception ex)
 			{
-				// Log the exception for debugging
-				Console.WriteLine($"Error: {ex.Message}");
-				return BadRequest(ex.Message);
+				// Log the exception
+				Console.WriteLine($"Error processing request: {ex}");
+				return BadRequest(new { errors = new[] { ex.Message } });
 			}
 		}
 	}

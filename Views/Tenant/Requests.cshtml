@@ -189,11 +189,9 @@
             </div>
         </div>
 
-        <div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRequestModal">
-                <i class="fas fa-plus me-2"></i>Add Request
-            </button>
-        </div>
+        <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addRequestModal">
+            <i class="fas fa-plus me-2"></i>Add New Request
+        </button>
 
         <!-- Statistics Cards -->
         <div class="row g-4 mb-4">
@@ -310,18 +308,19 @@
     </div>
 
     <!-- Add Request Modal -->
-    <!-- Add Request Modal -->
-    <div class="modal fade" id="addRequestModal" tabindex="-1" aria-labelledby="addRequestModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="addRequestModal" tabindex="-1">
+        <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="addRequestModalLabel">Add New Request</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title">New Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addRequestForm">
+                    <form id="requestForm" onsubmit="return false;">
+                        <!-- Move AntiForgeryToken inside the form -->
+                        <input name="__RequestVerificationToken" type="hidden"
+                            value="@Html.AntiForgeryToken().ToString()" />
+
                         <div class="mb-3">
                             <label for="title" class="form-label">Title</label>
                             <input type="text" class="form-control" id="title" name="title" required>
@@ -334,19 +333,24 @@
                         <div class="mb-3">
                             <label for="priority" class="form-label">Priority</label>
                             <select class="form-select" id="priority" name="priority" required>
-                                <option value="Low">Low</option>
-                                <option value="Medium">Medium</option>
-                                <option value="High">High</option>
+                                <option value="0">Low</option>
+                                <option value="1">Medium</option>
+                                <option value="2">High</option>
                             </select>
                         </div>
+                        <input type="hidden" id="propertyId" name="propertyId" value="1">
                     </form>
                 </div>
+                <div class="modal-body" id="errorMessages" style="display: none;">
+                    <div class="alert alert-danger"></div>
+                </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="submitRequest">Submit</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitRequest()">Submit</button>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Toast Container for Notifications -->
@@ -400,35 +404,82 @@
             NeedMoreInfo: 4
         };
 
-        $(document).ready(function () {
-            // Handle form submission
-            $('#submitRequest').on('click', function () {
-                const formData = {
-                    title: $('#title').val(),
-                    description: $('#description').val(),
-                    priority: $('#priority').val() // Ensure this matches the enum values (Low, Medium, High)
+        async function submitRequest() {
+            console.log('submitRequest function called');
+
+            const form = document.getElementById('requestForm');
+            const errorDiv = document.getElementById('errorMessages');
+            const errorAlert = errorDiv.querySelector('.alert-danger');
+
+            // Reset error messages
+            errorDiv.style.display = 'none';
+            errorAlert.textContent = '';
+
+            try {
+                // Get form values
+                const data = {
+                    title: document.getElementById('title').value.trim(),
+                    description: document.getElementById('description').value.trim(),
+                    priority: parseInt(document.getElementById('priority').value),
+                    propertyId: parseInt(document.getElementById('propertyId').value)
                 };
 
-                $.ajax({
-                    url: '/Tenant/Requests',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(formData),
-                    headers: {
-                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                    },
-                    success: function (response) {
-                        $('#addRequestModal').modal('hide');
-                        showToast('Request added successfully!', 'success');
-                        setTimeout(() => location.reload(), 1500);
-                    },
-                    error: function (xhr, status, error) {
-                        showToast('Failed to add request: ' + xhr.responseText, 'danger');
-                    }
-                });
-            });
-        });
+                // Validate data
+                if (!data.title || !data.description) {
+                    throw new Error('Please fill in all required fields');
+                }
 
+                console.log('Request data:', data);
+
+                const response = await fetch('/Tenant/Requests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                console.log('Response status:', response.status);
+
+                let responseData;
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+
+                try {
+                    responseData = responseText ? JSON.parse(responseText) : {};
+                } catch (e) {
+                    console.error('Error parsing response:', e);
+                    throw new Error('Invalid server response');
+                }
+
+                if (!response.ok) {
+                    const errorMessage = responseData.errors
+                        ? responseData.errors.join('\n')
+                        : 'Failed to submit request';
+                    throw new Error(errorMessage);
+                }
+
+                // Request successful
+                console.log('Request successful:', responseData);
+
+                // Close modal and refresh page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addRequestModal'));
+                modal.hide();
+                window.location.reload();
+
+            } catch (error) {
+                console.error('Error submitting request:', error);
+                // Display error message
+                errorDiv.style.display = 'block';
+                errorAlert.textContent = error.message;
+            }
+        }
+
+        // Add event listener when the document loads
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM loaded');
+        });
     </script>
 
 </body>
