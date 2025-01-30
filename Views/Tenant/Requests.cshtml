@@ -1,3 +1,436 @@
+@model RentalManagementSystem.ViewModels.RequestListViewModel
 @{
     Layout = "_TenantLayout";
+
+    string GetPriorityColor(RequestPriority priority)
+    {
+        return priority switch
+        {
+            RequestPriority.Low => "info",
+            RequestPriority.Medium => "warning",
+            RequestPriority.High => "danger",
+            @* RequestPriority.Critical => "dark", *@
+            _ => "secondary"
+        };
+    }
+
+    string GetStatusColor(RequestStatus status)
+    {
+        return status switch
+        {
+            @* RequestStatus.New => "primary", *@
+            RequestStatus.InProgress => "info",
+            RequestStatus.Pending => "warning",
+            RequestStatus.Completed => "success",
+            @* RequestStatus.Cancelled => "danger", *@
+            _ => "secondary"
+        };
+    }
 }
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Rental Management System</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bs-primary-rgb: 13, 110, 253;
+            --bs-warning-rgb: 255, 193, 7;
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .dashboard-container {
+            padding: 2rem;
+        }
+
+        .stats-card {
+            transition: transform 0.2s;
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stats-icon {
+            width: 4rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .table-card {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            overflow: hidden;
+        }
+
+        .table thead th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.825rem;
+            letter-spacing: 0.025em;
+        }
+
+        .badge {
+            padding: 0.5em 1em;
+            font-weight: 500;
+            letter-spacing: 0.025em;
+        }
+
+        .btn-group .btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+            margin: 0 0.125rem;
+        }
+
+        .filter-card {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .input-group .form-control,
+        .input-group .input-group-text {
+            border: 1px solid #e9ecef;
+            padding: 0.75rem 1rem;
+        }
+
+        .input-group .form-control:focus {
+            box-shadow: none;
+            border-color: #86b7fe;
+        }
+
+        .modal-content {
+            border-radius: 1rem;
+            border: none;
+        }
+
+        .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .toast {
+            border-radius: 0.75rem;
+        }
+
+        /* Custom styles for the "Add Request" button */
+        .btn-primary {
+            background-color: var(--bs-primary);
+            border-color: var(--bs-primary);
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: darken(var(--bs-primary), 10%);
+            border-color: darken(var(--bs-primary), 10%);
+        }
+
+        /* Custom styles for the modal */
+        .modal-content {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            background-color: var(--bs-primary);
+            color: white;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+
+        .modal-title {
+            font-weight: 600;
+        }
+
+        .modal-footer {
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    @Html.AntiForgeryToken()
+    <div class="dashboard-container">
+        <!-- Header Section -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-0">Maintenance Requests</h2>
+                <p class="text-muted mb-0">Manage and track maintenance requests</p>
+            </div>
+        </div>
+
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRequestModal">
+                <i class="fas fa-plus me-2"></i>Add Request
+            </button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stats-card card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-2">Total Requests</p>
+                                <h3 class="fw-bold mb-0">@Model.TotalRequests</h3>
+                                <p class="text-success mb-0">
+                                    <i class="fas fa-arrow-up me-1"></i>
+                                    <small>12% increase</small>
+                                </p>
+                            </div>
+                            <div class="stats-icon bg-primary bg-opacity-10">
+                                <i class="fas fa-clipboard-list text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-2">Pending Requests</p>
+                                <h3 class="fw-bold text-warning mb-0">@Model.PendingRequests</h3>
+                                <p class="text-danger mb-0">
+                                    <i class="fas fa-arrow-down me-1"></i>
+                                    <small>5% decrease</small>
+                                </p>
+                            </div>
+                            <div class="stats-icon bg-warning bg-opacity-10">
+                                <i class="fas fa-clock text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filter-card card mb-4">
+            <div class="card-body">
+                <form method="get" id="filterForm" class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" name="searchTerm" placeholder="Search requests..."
+                                value="@Model.SearchTerm">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="status" onchange="this.form.submit()">
+                            <option value="">All Status</option>
+                            @foreach (var status in Enum.GetValues(typeof(RequestStatus)))
+                            {
+                                <option value="@status" selected="@(Model.FilterStatus == (RequestStatus)status)">
+                                    @status
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="table-card card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="requestsTable">
+                        <thead>
+                            <tr>
+
+                                <th>Title</th>
+                                <th>Priority</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Landlord Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.Requests)
+                            {
+                                <tr>
+
+                                    <td class="align-middle">
+                                        <div>
+                                            <h6 class="mb-0">@request.Title</h6>
+                                            <small class="text-muted">@request.TimeAgo</small>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span
+                                            class="badge bg-@GetPriorityColor(request.Priority) bg-opacity-10 text-@GetPriorityColor(request.Priority)">
+                                            @request.Priority
+                                        </span>
+                                    </td>
+                                    <td class="align-middle">@request.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td class="align-middle">@request.Status</td>
+                                    <td class="align-middle">@request.LandlordNotes</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Request Modal -->
+    <!-- Add Request Modal -->
+    <div class="modal fade" id="addRequestModal" tabindex="-1" aria-labelledby="addRequestModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="addRequestModalLabel">Add New Request</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addRequestForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="submitRequest">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div id="toast-container" class="position-fixed bottom-0 end-0 p-3"></div>
+
+    <!-- JavaScript References -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+
+    <script>
+        // Function to show toast notifications
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+
+            toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+
+        // Enum for Request Status (matching your C# enum)
+        const RequestStatus = {
+            Pending: 0,
+            InProgress: 1,
+            Completed: 2,
+            Rejected: 3,
+            NeedMoreInfo: 4
+        };
+
+        $(document).ready(function () {
+            // Handle form submission
+            $('#submitRequest').on('click', function () {
+                const formData = {
+                    title: $('#title').val(),
+                    description: $('#description').val(),
+                    priority: $('#priority').val() // Ensure this matches the enum values (Low, Medium, High)
+                };
+
+                $.ajax({
+                    url: '/Tenant/Requests',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        $('#addRequestModal').modal('hide');
+                        showToast('Request added successfully!', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    },
+                    error: function (xhr, status, error) {
+                        showToast('Failed to add request: ' + xhr.responseText, 'danger');
+                    }
+                });
+            });
+        });
+
+    </script>
+
+</body>
+
+</html>
