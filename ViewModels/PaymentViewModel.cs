@@ -24,10 +24,10 @@ namespace RentalManagementSystem.ViewModels
 	public class PaymentViewModel
 	{
 		public IEnumerable<PaymentListItemViewModel> Payments { get; set; }
-		public IEnumerable<SelectListItem> Houses { get; set; }  // Changed from IEnumerable<House>
-		public IEnumerable<SelectListItem> Users { get; set; }   // Changed from IEnumerable<User>
-		public int? HouseId { get; set; }  // Added for form binding
-		public int? UserId { get; set; }   // Added for form binding
+		public IEnumerable<SelectListItem> Houses { get; set; }  
+		public IEnumerable<SelectListItem> Users { get; set; }   
+		public int? HouseId { get; set; }  
+		public int? UserId { get; set; }  
 		public string StatusMessage { get; set; }
 	}
 

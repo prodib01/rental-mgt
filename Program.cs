@@ -162,6 +162,9 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+//Default redirect
+app.MapGet("/", () => Results.Redirect("/Auth/Login"));
+
 // EndpointMiddleware
 app.MapControllerRoute(
 	name: "default",

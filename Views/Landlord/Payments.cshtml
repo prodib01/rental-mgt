@@ -1,65 +1,209 @@
 @model RentalManagementSystem.ViewModels.PaymentViewModel
 
 @{
-    Layout = "_LandlordLayout";
+Layout = "_LandlordLayout";
 }
 
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-12">
-            <h2 class="mb-4 text-primary fw-bold">Payment Records</h2>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary fw-bold m-0">
+                    <i class="bi bi-cash-coin me-2"></i>Payment Records
+                </h2>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary">
+                        <i class="bi bi-download me-1"></i>Export Payments
+                    </button>
+                </div>
+            </div>
 
-            <div class="card shadow">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 text-primary">Payment List</h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-download me-1"></i>Export
+            <!-- Stats Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Total Payments</h6>
+                                    <h3 class="mb-0 fw-bold">@Model.Payments.Count()</h3>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                                    <i class="bi bi-credit-card text-primary fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Total Income</h6>
+                                    <h3 class="mb-0 fw-bold">@Model.Payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.Amount).ToString("C")</h3>
+                                </div>
+                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                                    <i class="bi bi-cash text-success fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Pending Amount</h6>
+                                    <h3 class="mb-0 fw-bold">@Model.Payments.Where(p => p.PaymentStatus == "Pending").Sum(p => p.Amount).ToString("C")</h3>
+                                </div>
+                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                                    <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Failed Payments</h6>
+                                    <h3 class="mb-0 fw-bold">@Model.Payments.Count(p => p.PaymentStatus == "Failed")</h3>
+                                </div>
+                                <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
+                                    <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment List Card -->
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-list-check text-primary me-2 fs-5"></i>
+                        <h5 class="mb-0 text-primary fw-semibold">Payment List</h5>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search payments...">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
-                                <tr>
-                                    <th class="fw-semibold">House</th>
-                                    <th class="fw-semibold">User</th>
-                                    <th class="fw-semibold">Amount</th>
-                                    <th class="fw-semibold">Payment Date</th>
-                                    <th class="fw-semibold">Payment Method</th>
-                                    <th class="fw-semibold">Payment Status</th>
-                                    <th class="fw-semibold">Reference</th>
-                                </tr>
+                            <tr>
+                                <th class="fw-semibold px-3 py-3">House</th>
+                                <th class="fw-semibold px-3 py-3">Payment For</th>
+                                <th class="fw-semibold px-3 py-3">Amount</th>
+                                <th class="fw-semibold px-3 py-3">Payment Date</th>
+                                <th class="fw-semibold px-3 py-3">Payment Method</th>
+                                <th class="fw-semibold px-3 py-3">Status</th>
+                                <th class="fw-semibold px-3 py-3">Reference</th>
+                                <th class="fw-semibold px-3 py-3">Actions</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var payment in Model.Payments)
-                                {
-                                    <tr>
-                                        <td>@payment.House?.HouseNumber</td>
-                                        <td>@payment.User?.FullName</td>
-                                        <td class="fw-semibold">@payment.Amount.ToString("C")</td>
-                                        <td>@payment.PaymentDate.ToShortDateString()</td>
-                                        <td>
-                                            <span class="badge bg-secondary">@payment.PaymentMethod</span>
-                                        </td>
-                                        <td>
-                                            @{
-                                                var statusClass = payment.PaymentStatus.ToLower() switch
-                                                {
-                                                    "completed" => "bg-success",
-                                                    "pending" => "bg-warning",
-                                                    "failed" => "bg-danger",
-                                                    _ => "bg-secondary"
-                                                };
-                                            }
-                                            <span class="badge @statusClass">@payment.PaymentStatus</span>
-                                        </td>
-                                        <td><small class="text-muted">@payment.PaymentReference</small></td>
-                                    </tr>
-                                }
+                            @foreach (var payment in Model.Payments)
+                            {
+                            <tr>
+                                <td class="px-3 py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-light rounded p-2 me-2">
+                                            <i class="bi bi-house-door text-primary"></i>
+                                        </div>
+                                        <span>@payment.House?.HouseNumber</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">@payment.PaymentType</td>
+                                <td class="px-3 py-3 fw-semibold">@payment.Amount.ToString("C")</td>
+                                <td class="px-3 py-3">@payment.PaymentDate.ToShortDateString()</td>
+                                <td class="px-3 py-3">
+                                    @{
+                                    var methodClass = payment.PaymentMethod.ToLower() switch
+                                    {
+                                    "card" => "bg-info bg-opacity-10 text-info",
+                                    "bank transfer" => "bg-primary bg-opacity-10 text-primary",
+                                    "cash" => "bg-success bg-opacity-10 text-success",
+                                    _ => "bg-secondary bg-opacity-10 text-secondary"
+                                    };
+                                    var methodIcon = payment.PaymentMethod.ToLower() switch
+                                    {
+                                    "card" => "bi-credit-card",
+                                    "bank transfer" => "bi-bank",
+                                    "cash" => "bi-cash",
+                                    _ => "bi-question-circle"
+                                    };
+                                    }
+                                    <span class="badge @methodClass rounded-pill px-3 py-2">
+                                                <i class="bi @methodIcon me-1"></i>@payment.PaymentMethod
+                                            </span>
+                                </td>
+                                <td class="px-3 py-3">
+                                    @{
+                                    var statusClass = payment.PaymentStatus.ToLower() switch
+                                    {
+                                    "completed" => "bg-success",
+                                    "pending" => "bg-warning",
+                                    "failed" => "bg-danger",
+                                    _ => "bg-secondary"
+                                    };
+                                    var statusIcon = payment.PaymentStatus.ToLower() switch
+                                    {
+                                    "completed" => "bi-check-circle",
+                                    "pending" => "bi-hourglass-split",
+                                    "failed" => "bi-x-circle",
+                                    _ => "bi-question-circle"
+                                    };
+                                    }
+                                    <span class="badge @statusClass rounded-pill px-3 py-2">
+                                                <i class="bi @statusIcon me-1"></i>@payment.PaymentStatus
+                                            </span>
+                                </td>
+                                <td class="px-3 py-3"><small class="text-muted">@payment.PaymentReference</small></td>
+                                <td class="px-3 py-3">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
+                                            <li><a class="dropdown-item" href="#" data-payment-id="@payment.Id" onclick="printReceipt(event, @payment.Id)"><i class="bi bi-printer me-2"></i>Print Receipt</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="card-footer bg-white py-3">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-end mb-0">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -67,6 +211,33 @@
 </div>
 
 @section Scripts {
-    <!-- Include Bootstrap Icons CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<!-- Include Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<!-- Optional: Include Chart.js for payment analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+
+    // Print receipt function
+    function printReceipt(event, paymentId) {
+        event.preventDefault();
+
+        // Open receipt in new window
+        window.open(`/Landlord/Payments/Receipt/${paymentId}`, '_blank', 'width=800,height=600');
+    }
+</script>
 }

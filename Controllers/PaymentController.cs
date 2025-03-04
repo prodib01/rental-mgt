@@ -49,8 +49,9 @@ namespace RentalManagementSystem.Controllers
 					Id = p.Id,
 					Amount = p.Amount,
 					PaymentDate = p.PaymentDate,
-					PaymentMethod = p.PaymentMethod.ToString(), // Convert enum to string
-					PaymentStatus = p.PaymentStatus.ToString(), // Convert enum to string
+					PaymentType = p.PaymentType,
+					PaymentMethod = p.PaymentMethod.ToString(), 
+					PaymentStatus = p.PaymentStatus.ToString(), 
 					PaymentReference = p.PaymentReference,
 					HouseId = p.HouseId,
 					UserId = p.UserId,
@@ -79,13 +80,30 @@ namespace RentalManagementSystem.Controllers
 			var viewModel = new PaymentViewModel
 			{
 				Payments = payments,
-				Houses = houses,  // Use the `houses` variable here
-				Users = users,    // Use the `users` variable here
+				Houses = houses,  
+				Users = users,    
 				StatusMessage = totalPayments > 0 ? $"{totalPayments} payments found." : "No payments found."
 			};
 
 
 			return View("~/Views/Landlord/Payments.cshtml", viewModel);
+		}
+		
+		[HttpGet]
+		[Route("Receipt/{id}")]
+		public async Task<IActionResult> Receipt(int id)
+		{
+			var payment = await _context.Payments
+				.Include(p => p.House)
+				.Include(p => p.User)
+				.FirstOrDefaultAsync(p => p.Id == id);
+    
+			if (payment == null)
+			{
+				return NotFound();
+			}
+
+			return View("~/Views/Landlord/Receipt.cshtml", payment);
 		}
 	}
 }

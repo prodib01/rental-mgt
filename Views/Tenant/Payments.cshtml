@@ -124,6 +124,21 @@
             </button>
         </div>
         <div class="card-body p-4">
+            @if (TempData["SuccessMessage"] != null)
+            {
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            }
             @if (Model.Payments?.Any() == true)
             {
                 <div class="table-responsive">
@@ -191,16 +206,16 @@
                 <div class="modal-body p-4">
                     <form asp-action="Add" method="post" class="needs-validation" novalidate>
                         <input type="hidden" name="HouseId" value="@Model.HouseId" />
+                        <input type="hidden" name="UserId" value="@Model.UserId" />
 
                         @{
-                            var house = Model.Houses.FirstOrDefault(h => h.Value == Model.HouseId.ToString());
-                            var houseNumber = house?.Text ?? "No house assigned";
+                        var house = Model.Houses.FirstOrDefault(h => h.Value == Model.HouseId.ToString());
+                        var houseNumber = house?.Text ?? "No house assigned";
                         }
 
                         <div class="mb-3">
                             <label for="PaymentType" class="form-label">Payment Type</label>
-                            <select class="form-select" id="PaymentType" name="PaymentType" required
-                                onchange="updateAmount()">
+                            <select class="form-select" id="PaymentType" name="PaymentType" required>
                                 <option value="">Select payment type</option>
                                 <option value="Rent">Rent</option>
                                 <option value="Utility">Utility</option>
@@ -215,7 +230,7 @@
 
                         <div id="utilityBreakdown" class="mb-3 d-none">
                             <label class="form-label">Utility Breakdown</label>
-                            <div id="utilityBreakdown" style="display: none;" class="mt-3 mb-3">
+                            <div class="mt-3 mb-3">
                             </div>
                         </div>
 
@@ -223,8 +238,7 @@
                             <label for="Amount" class="form-label">Amount</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="Amount" name="Amount" required step="0.01"
-                                    min="0" readonly>
+                                <input type="number" class="form-control" id="Amount" name="Amount" required step="0.01" min="0">
                                 <div class="invalid-feedback">Please enter a valid amount.</div>
                             </div>
                         </div>
@@ -240,8 +254,8 @@
                             <select class="form-select" id="PaymentMethod" name="PaymentMethod" required>
                                 <option value="">Select payment method</option>
                                 <option value="Cash">Cash</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Mobile Money">Mobile Money</option>
+                                <option value="BankTransfer">Bank Transfer</option>
+                                <option value="MobileMoney">Mobile Money</option>
                             </select>
                             <div class="invalid-feedback">Please select a payment method.</div>
                         </div>
@@ -259,7 +273,7 @@
                         <div class="mb-3">
                             <label for="Description" class="form-label">Description (Optional)</label>
                             <textarea class="form-control" id="Description" name="Description" rows="3"
-                                placeholder="Enter any additional notes or description"></textarea>
+                                      placeholder="Enter any additional notes or description"></textarea>
                         </div>
 
                         <div class="alert alert-info mb-4">
@@ -294,68 +308,123 @@
         })
     })()
 
-    // Set default date to today
-    // Add this script to your Payments.cshtml view
-// Add this to your existing script section in Payments.cshtml
-document.addEventListener('DOMContentLoaded', function () {
-    const paymentTypeSelect = document.getElementById('PaymentType');
-    const amountInput = document.getElementById('Amount');
-    const utilityBreakdownDiv = document.getElementById('utilityBreakdown');
-    const houseIdInput = document.querySelector('input[name="HouseId"]');
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('PaymentDate').value = today;
 
-    async function updateAmount() {
-        const selectedType = paymentTypeSelect.value;
-        
-        if (!selectedType) {
-            amountInput.value = '';
-            utilityBreakdownDiv.classList.add('d-none');
-            return;
+        const paymentTypeSelect = document.getElementById('PaymentType');
+        const amountInput = document.getElementById('Amount');
+        const utilityBreakdownDiv = document.getElementById('utilityBreakdown');
+        const houseIdInput = document.querySelector('input[name="HouseId"]');
+        const paymentForm = document.querySelector('form[asp-action="Add"]');
+
+        async function checkPaymentAvailability(paymentType) {
+            try {
+                const response = await fetch(`/Tenant/Payments/CheckPaymentAvailability?paymentType=${paymentType}`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error checking payment availability:', error);
+                return { available: false, message: 'Error checking payment availability' };
+            }
         }
 
-        if (selectedType === 'Rent') {
-            try {
-                const houseId = houseIdInput.value;
-                const response = await fetch(`/Tenant/Payments/GetHouseRent/${houseId}`);
-                const data = await response.json();
-                amountInput.value = data.rent.toFixed(2);
+        async function updateAmount() {
+            const selectedType = paymentTypeSelect.value;
+
+            if (!selectedType) {
+                amountInput.value = '';
                 utilityBreakdownDiv.classList.add('d-none');
-            } catch (error) {
-                console.error('Error fetching rent amount:', error);
+                return;
             }
-        } else if (selectedType === 'Utility') {
-            try {
-                const response = await fetch('/Tenant/Payments/GetUnpaidUtilities');
-                const utilities = await response.json();
-                
-                if (utilities.length === 0) {
-                    amountInput.value = '0.00';
-                    utilityBreakdownDiv.innerHTML = '<div class="alert alert-info">No unpaid utilities found.</div>';
-                } else {
-                    let total = 0;
-                    let breakdownHtml = '<div class="list-group">';
-                    
-                    utilities.forEach(utility => {
-                        total += utility.totalCost;
-                        breakdownHtml += `
+
+            // First check if payment is available for this month
+            const availabilityCheck = await checkPaymentAvailability(selectedType);
+            if (!availabilityCheck.available) {
+                // Show alert message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                <strong>Notice:</strong> ${availabilityCheck.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+                // Insert alert before the form
+                paymentForm.parentNode.insertBefore(alertDiv, paymentForm);
+
+                // Reset the selection
+                paymentTypeSelect.value = '';
+                amountInput.value = '';
+                utilityBreakdownDiv.classList.add('d-none');
+                return;
+            }
+
+            if (selectedType === 'Rent') {
+                try {
+                    const houseId = houseIdInput.value;
+                    const response = await fetch(`/Tenant/Payments/GetHouseRent/${houseId}`);
+                    const data = await response.json();
+                    amountInput.value = data.rent.toFixed(2);
+                    utilityBreakdownDiv.classList.add('d-none');
+                } catch (error) {
+                    console.error('Error fetching rent amount:', error);
+                }
+            } else if (selectedType === 'Utility') {
+                try {
+                    const response = await fetch('/Tenant/Payments/GetUnpaidUtilities');
+                    const utilities = await response.json();
+
+                    if (utilities.length === 0) {
+                        amountInput.value = '0.00';
+                        utilityBreakdownDiv.innerHTML = '<div class="alert alert-info">No unpaid utilities found.</div>';
+                    } else {
+                        let total = 0;
+                        let breakdownHtml = '<div class="list-group">';
+
+                        utilities.forEach(utility => {
+                            total += utility.totalCost;
+                            breakdownHtml += `
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>${utility.name}</span>
                                 <span class="badge bg-primary rounded-pill">$${utility.totalCost.toFixed(2)}</span>
                             </div>`;
-                    });
-                    
-                    breakdownHtml += '</div>';
-                    utilityBreakdownDiv.innerHTML = breakdownHtml;
-                    amountInput.value = total.toFixed(2);
+                        });
+
+                        breakdownHtml += '</div>';
+                        utilityBreakdownDiv.innerHTML = breakdownHtml;
+                        amountInput.value = total.toFixed(2);
+                    }
+                    utilityBreakdownDiv.classList.remove('d-none');
+                } catch (error) {
+                    console.error('Error fetching utility amounts:', error);
                 }
-                utilityBreakdownDiv.classList.remove('d-none');
-            } catch (error) {
-                console.error('Error fetching utility amounts:', error);
             }
         }
-    }
 
-    if (paymentTypeSelect) {
-        paymentTypeSelect.addEventListener('change', updateAmount);
-    }
-});
+        // Add form submission handler
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(event) {
+                if (!paymentTypeSelect.value) {
+                    event.preventDefault();
+                    alert('Please select a payment type');
+                    return false;
+                }
+
+                if (!amountInput.value || parseFloat(amountInput.value) <= 0) {
+                    event.preventDefault();
+                    alert('Invalid amount. Please select a valid payment type.');
+                    return false;
+                }
+
+                // Make amount field not readonly just before submission
+                // This is necessary because readonly fields don't get submitted with the form
+                amountInput.readOnly = false;
+            });
+        }
+
+        if (paymentTypeSelect) {
+            paymentTypeSelect.addEventListener('change', updateAmount);
+        }
+    });
 </script>

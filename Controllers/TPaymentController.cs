@@ -143,120 +143,146 @@ namespace RentalManagementSystem.Controllers
 
 
 		[HttpPost]
-		[Route("Add")]
-		[ValidateAntiForgeryToken]
-		public async Task<IActionResult> Add([Bind("Amount,PaymentDate,PaymentMethod,PaymentStatus,PaymentReference,Description,HouseId,UserId,PaymentType")] CreatePaymentDto paymentDto)
-		{
-			try
-			{
-				var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-				if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
-				{
-					return Unauthorized("Invalid or missing user ID claim.");
-				}
+[Route("Add")]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Add(string PaymentType, decimal Amount, DateTime PaymentDate, string PaymentMethod, string PaymentStatus, string Description, int? HouseId, int? UserId)
+{
+    try
+    {
+        // Get user ID from claims
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
+        {
+            TempData["ErrorMessage"] = "Invalid or missing user ID.";
+            return RedirectToAction(nameof(Payment));
+        }
 
-				// Check if payment already exists for current month
-				var currentDate = DateTime.Now;
-				var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
-				var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+        // Debuging information
+        Console.WriteLine($"PaymentType: {PaymentType}");
+        Console.WriteLine($"Amount: {Amount}");
+        Console.WriteLine($"PaymentDate: {PaymentDate}");
+        Console.WriteLine($"PaymentMethod: {PaymentMethod}");
+        Console.WriteLine($"PaymentStatus: {PaymentStatus}");
+        
+        // Validate inputs manually
+        if (string.IsNullOrEmpty(PaymentType) || Amount <= 0 || string.IsNullOrEmpty(PaymentMethod) || string.IsNullOrEmpty(PaymentStatus))
+        {
+            TempData["ErrorMessage"] = "Please fill in all required fields with valid values.";
+            return RedirectToAction(nameof(Payment));
+        }
 
-				var existingPayment = await _context.Payments
-					.Where(p => p.UserId == userId
-							&& p.PaymentType == paymentDto.PaymentType
-							&& p.PaymentDate >= firstDayOfMonth
-							&& p.PaymentDate <= lastDayOfMonth)
-					.FirstOrDefaultAsync();
+        // Check if payment already exists for current month
+        var currentDate = DateTime.Now;
+        var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
 
-				if (existingPayment != null)
-				{
-					var monthYear = currentDate.ToString("MMMM yyyy");
-					return BadRequest($"{paymentDto.PaymentType} payment for {monthYear} has already been made. Next payment can be made in {currentDate.AddMonths(1).ToString("MMMM yyyy")}.");
-				}
+        var existingPayment = await _context.Payments
+            .Where(p => p.UserId == userId
+                    && p.PaymentType == PaymentType
+                    && p.PaymentDate >= firstDayOfMonth
+                    && p.PaymentDate <= lastDayOfMonth)
+            .FirstOrDefaultAsync();
 
-				var user = await _context.Users
-					.Include(u => u.House)
-					.FirstOrDefaultAsync(u => u.Id == userId);
+        if (existingPayment != null)
+        {
+            var monthYear = currentDate.ToString("MMMM yyyy");
+            TempData["ErrorMessage"] = $"{PaymentType} payment for {monthYear} has already been made. Next payment can be made in {currentDate.AddMonths(1).ToString("MMMM yyyy")}.";
+            return RedirectToAction(nameof(Payment));
+        }
 
-				if (user == null)
-				{
-					return NotFound("User not found in the database.");
-				}
+        // Get user and associated house
+        var user = await _context.Users
+            .Include(u => u.House)
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
-				if (!ModelState.IsValid)
-				{
-					return BadRequest("Invalid payment data.");
-				}
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "User not found in the database.";
+            return RedirectToAction(nameof(Payment));
+        }
 
-				// Begin transaction
-				using var transaction = await _context.Database.BeginTransactionAsync();
-				try
-				{
-					decimal totalAmount = 0;
-					List<UtilityReading> unpaidUtilities = new List<UtilityReading>();
+        // Use house from user
+        HouseId = user.HouseId;
 
-					if (paymentDto.PaymentType == "Utility")
-					{
-						unpaidUtilities = await _context.UtilityReadings
-							.Include(u => u.Utility)
-							.Where(u => u.TenantId == userId && !u.IsPaid)
-							.ToListAsync();
+        decimal totalAmount = Amount;
+        List<UtilityReading> unpaidUtilities = new List<UtilityReading>();
 
-						if (!unpaidUtilities.Any())
-						{
-							return BadRequest("No unpaid utilities found for the current month.");
-						}
+        // Begin transaction
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            if (PaymentType == "Utility")
+            {
+                unpaidUtilities = await _context.UtilityReadings
+                    .Include(u => u.Utility)
+                    .Where(u => u.TenantId == userId && !u.IsPaid)
+                    .ToListAsync();
 
-						totalAmount = unpaidUtilities.Sum(u => u.TotalCost);
-					}
-					else if (paymentDto.PaymentType == "Rent")
-					{
-						if (user.House == null)
-						{
-							return BadRequest("No house associated with user.");
-						}
-						totalAmount = user.House.Rent;
-					}
+                if (!unpaidUtilities.Any())
+                {
+                    TempData["ErrorMessage"] = "No unpaid utilities found for the current month.";
+                    return RedirectToAction(nameof(Payment));
+                }
 
-					var payment = new Payment
-					{
-						Amount = totalAmount,
-						PaymentDate = DateTime.Now, // Use current date to ensure accurate month tracking
-						PaymentMethod = paymentDto.PaymentMethod.ToString(),
-						PaymentStatus = "Completed",
-						PaymentReference = GeneratePaymentReference(user.HouseId, userId),
-						Description = GeneratePaymentDescription(paymentDto.PaymentType, unpaidUtilities),
-						HouseId = user.HouseId,
-						UserId = userId,
-						PaymentType = paymentDto.PaymentType
-					};
+                totalAmount = unpaidUtilities.Sum(u => u.TotalCost);
+            }
+            else if (PaymentType == "Rent")
+            {
+                if (user.House == null)
+                {
+                    TempData["ErrorMessage"] = "No house associated with user.";
+                    return RedirectToAction(nameof(Payment));
+                }
+                totalAmount = user.House.Rent;
+            }
 
-					_context.Payments.Add(payment);
+            // Create payment record
+            var payment = new Payment
+            {
+                Amount = totalAmount,
+                PaymentDate = PaymentDate,
+                PaymentMethod = PaymentMethod,
+                PaymentStatus = PaymentStatus,
+                PaymentReference = GeneratePaymentReference(HouseId, userId),
+                Description = string.IsNullOrEmpty(Description) ? 
+                    GeneratePaymentDescription(PaymentType, unpaidUtilities) : 
+                    Description,
+                HouseId = HouseId,
+                UserId = userId,
+                PaymentType = PaymentType
+            };
 
-					if (paymentDto.PaymentType == "Utility")
-					{
-						foreach (var utility in unpaidUtilities)
-						{
-							utility.IsPaid = true;
-							_context.Update(utility);
-						}
-					}
+            _context.Payments.Add(payment);
 
-					await _context.SaveChangesAsync();
-					await transaction.CommitAsync();
+            // Mark utilities as paid if applicable
+            if (PaymentType == "Utility")
+            {
+                foreach (var utility in unpaidUtilities)
+                {
+                    utility.IsPaid = true;
+                    _context.Update(utility);
+                }
+            }
 
-					return RedirectToAction(nameof(Payment));
-				}
-				catch (Exception ex)
-				{
-					await transaction.RollbackAsync();
-					return BadRequest($"Failed to process payment: {ex.Message}");
-				}
-			}
-			catch (Exception ex)
-			{
-				return BadRequest($"An unexpected error occurred: {ex.Message}");
-			}
-		}
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            TempData["SuccessMessage"] = $"{PaymentType} payment of ${totalAmount:F2} processed successfully.";
+            return RedirectToAction(nameof(Payment));
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            TempData["ErrorMessage"] = $"Failed to process payment: {ex.Message}";
+            return RedirectToAction(nameof(Payment));
+        }
+    }
+    catch (Exception ex)
+    {
+        TempData["ErrorMessage"] = $"An unexpected error occurred: {ex.Message}";
+        return RedirectToAction(nameof(Payment));
+    }
+}
 
 		private string GeneratePaymentDescription(string paymentType, List<UtilityReading> utilities)
 		{
